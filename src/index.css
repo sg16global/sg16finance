@@ -378,18 +378,6 @@ a {
   }
 }
 
-.home-shield-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-@media (min-width: 1024px) {
-  .home-shield-stack {
-    gap: 0;
-  }
-}
-
 /* ── Mobile-first layout (matches geo / engine projects) ── */
 .page-flow {
   width: 100%;
