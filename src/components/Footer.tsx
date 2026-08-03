@@ -8,9 +8,9 @@ const NETWORK = [
 
 export default function Footer() {
   return (
-    <footer className="mt-auto border-t border-white/[0.08] bg-[#0D1118]">
-      <div className="mx-auto grid max-w-[1440px] gap-8 px-4 py-10 md:grid-cols-4 lg:px-6">
-        <div className="md:col-span-2">
+    <footer className="safe-bottom mt-auto border-t border-white/[0.08] bg-[#0D1118]">
+      <div className="mx-auto grid max-w-[1440px] grid-cols-2 gap-6 px-4 py-8 sm:gap-8 sm:py-10 md:grid-cols-4 lg:px-6">
+        <div className="col-span-2 md:col-span-2">
           <div className="font-bold text-white">SG16 Finance</div>
           <p className="mt-2 max-w-md text-sm text-[#7D8594]">
             Institutional-grade market intelligence — sectors, earnings, and global context in plain English.

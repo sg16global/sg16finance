@@ -255,7 +255,7 @@ export default function WorldMap() {
         <rect width={MAP_W} height={MAP_H} fill="url(#mapFade)" pointerEvents="none" />
       </svg>
 
-      <div className="absolute bottom-14 left-3 z-10 max-w-[240px] md:bottom-16 md:left-4 md:max-w-sm">
+      <div className="absolute bottom-14 left-3 z-10 hidden max-w-[240px] md:block md:bottom-16 md:left-4 md:max-w-sm">
         <div className="glass-shield">
           <span className="shield-accent-bar" aria-hidden />
           <div className="glass-shield-inner p-3 md:p-3.5">
@@ -267,7 +267,11 @@ export default function WorldMap() {
         </div>
       </div>
 
-      <div className="absolute bottom-3 left-0 right-0 z-10 flex justify-center md:bottom-4">
+      <p className="map-caption-mobile absolute bottom-12 left-2 right-2 z-10 text-center text-[10px] leading-snug text-[#7D8594] md:hidden">
+        Live global hub routes · Educational map
+      </p>
+
+      <div className="absolute bottom-3 left-0 right-0 z-10 flex justify-center px-2 md:bottom-4">
         <Link
           to="/markets"
           className="rounded-xl border border-[#C76A16]/60 bg-black/80 px-5 py-2 text-xs font-medium text-[#FF9A3C] backdrop-blur-sm transition duration-200 hover:border-[#FF9A3C] hover:bg-[#C76A16]/15 accent-glow"

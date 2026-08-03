@@ -12,7 +12,7 @@ export default function Layout() {
   const { row1, row2 } = useTickerRows();
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#07090C]">
+    <div className="app-shell flex min-h-[100dvh] flex-col bg-[#07090C]">
       <DisclaimerBar />
       {isHome && <LiveTicker row1={row1} row2={row2} />}
       <Header />

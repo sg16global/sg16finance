@@ -47,7 +47,7 @@ export default function ShieldCards({ side, className = '' }: Props) {
           </div>
         </ShieldCard>
 
-        <ShieldCard className="hidden lg:block">
+        <ShieldCard className="lg:block">
           <SectionLabel>Our AI tools</SectionLabel>
           <ul className="mt-2 space-y-1 text-[11px] text-[#7D8594]">
             <li className="fin-list-item">Sector analysis</li>

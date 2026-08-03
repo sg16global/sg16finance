@@ -21,7 +21,7 @@ export default function CookieBanner() {
     <div
       role="dialog"
       aria-label="Cookie consent"
-      className="fixed bottom-0 left-0 right-0 z-[100] border-t border-white/[0.08] bg-[#0D1118]/98 p-4 backdrop-blur-md sm:p-5"
+      className="fixed bottom-0 left-0 right-0 z-[100] border-t border-white/[0.08] bg-[#0D1118]/98 p-4 backdrop-blur-md sm:p-5 pb-[max(1rem,env(safe-area-inset-bottom))]"
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-relaxed text-[#B6BDC8]">
