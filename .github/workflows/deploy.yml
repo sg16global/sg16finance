@@ -1,8 +1,9 @@
 name: Deploy to Cloudflare Pages
 
+# Cloudflare Pages deploys via Git integration — this workflow is optional.
+# Enable by adding CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID repo secrets.
+
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:

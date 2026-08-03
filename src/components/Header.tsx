@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import SearchBar from './SearchBar';
 
 function IconBot() {
@@ -11,16 +12,19 @@ function IconBot() {
 }
 
 export default function Header() {
+  const [logoFallback, setLogoFallback] = useState(false);
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#07090C]/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1440px] items-center gap-3 px-4 py-2.5 lg:gap-5 lg:px-6">
         <Link to="/" className="flex shrink-0 items-center">
           <img
-            src="/logo.svg"
-            alt="SG16 Finance — Global Intelligence"
-            className="h-8 w-auto object-contain object-left sm:h-10 md:h-11"
+            src={logoFallback ? '/logo.svg' : '/logo.png'}
+            alt="SG16 Finance"
+            className="h-10 w-auto max-w-[min(100vw-8rem,220px)] object-contain object-left sm:h-11"
             width={220}
-            height={44}
+            height={48}
+            onError={() => setLogoFallback(true)}
           />
         </Link>
 
