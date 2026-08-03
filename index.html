@@ -29,14 +29,30 @@
   </head>
   <body style="margin:0;background:#07090C;color:#B6BDC8;font-family:Inter,system-ui,sans-serif">
     <div id="root">
-      <div style="display:flex;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:12px">
-        <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.08);border-top-color:#C76A16;border-radius:50%;animation:spin 0.8s linear infinite"></div>
-        <p style="margin:0;color:#7D8594;font-size:14px">Loading SG16 Finance…</p>
-      </div>
+      <main style="max-width:720px;margin:0 auto;padding:2rem 1.25rem">
+        <h1 style="margin:0 0 0.75rem;font-size:1.75rem;font-weight:700;color:#fff">
+          SG16 Finance — Global Intelligence
+        </h1>
+        <p style="margin:0 0 1rem;line-height:1.55;color:#B6BDC8;font-size:15px">
+          Institutional-grade market context, global indices, sector research, and plain-English earnings
+          breakdowns. Built by Saif Tech Global Limited — educational content only, not financial advice.
+        </p>
+        <p style="margin:0 0 1.25rem;line-height:1.5;color:#7D8594;font-size:13px">
+          Live dashboard: world market map, tickers, sectors, earnings, and premium research tools.
+        </p>
+        <div style="display:flex;align-items:center;gap:12px;color:#7D8594;font-size:14px">
+          <div
+            style="width:28px;height:28px;border:3px solid rgba(255,255,255,0.08);border-top-color:#C76A16;border-radius:50%;animation:spin 0.8s linear infinite"
+            aria-hidden="true"
+          ></div>
+          <span>Loading dashboard…</span>
+        </div>
+      </main>
     </div>
     <noscript>
-      <p style="padding:2rem;text-align:center;color:#B6BDC8">
-        JavaScript is required. Open <strong>http://localhost:5173</strong> in Chrome or Edge.
+      <p style="padding:2rem;text-align:center;color:#B6BDC8;max-width:36rem;margin:0 auto;line-height:1.6">
+        SG16 Finance requires JavaScript for the live dashboard. Please enable JavaScript and visit
+        <strong>https://sg16finance.com</strong> in Chrome, Edge, or Safari.
       </p>
     </noscript>
     <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
