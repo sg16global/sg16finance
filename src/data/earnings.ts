@@ -69,6 +69,57 @@ export const EARNINGS: EarningsReport[] = [
       'Educational summary only — not a recommendation.',
     ],
   },
+  {
+    symbol: 'GOOGL',
+    company: 'Alphabet',
+    quarter: 'Q2 2026',
+    headline: 'Search stable; Cloud and AI capex in focus',
+    revenue: '$86.4B',
+    eps: '$1.89',
+    beatMiss: 'Revenue beat · EPS beat',
+    summary:
+      'Google Search and YouTube held share while Cloud growth accelerated. Management raised full-year capex to expand AI infrastructure.',
+    takeaways: [
+      'Investors want AI monetization metrics, not just spend.',
+      'Antitrust remedies remain an overhang in the US and EU.',
+      'YouTube and Cloud diversify away from pure search.',
+      'Educational summary only — not a recommendation.',
+    ],
+  },
+  {
+    symbol: 'AMZN',
+    company: 'Amazon',
+    quarter: 'Q2 2026',
+    headline: 'AWS re-accelerates; retail margins improve',
+    revenue: '$158.2B',
+    eps: '$1.35',
+    beatMiss: 'Revenue beat · EPS beat',
+    summary:
+      'AWS picked up enterprise AI workloads while North America retail benefited from logistics efficiency and advertising attach.',
+    takeaways: [
+      'AWS is the profit engine — watch growth vs Azure/GCP.',
+      'Advertising within retail is a hidden margin driver.',
+      'International retail still lags the US operation.',
+      'Educational summary only — not a recommendation.',
+    ],
+  },
+  {
+    symbol: 'META',
+    company: 'Meta Platforms',
+    quarter: 'Q2 2026',
+    headline: 'Reels monetization lifts ad revenue',
+    revenue: '$42.1B',
+    eps: '$6.03',
+    beatMiss: 'Revenue beat · EPS beat',
+    summary:
+      'Ad pricing improved as Reels inventory scaled. Reality Labs losses narrowed slightly while AI recommendation systems boosted engagement.',
+    takeaways: [
+      'Ad cycle sensitivity remains high for the stock.',
+      'Regulation on youth platforms is a headline risk.',
+      'Efficiency year comparisons get tougher ahead.',
+      'Educational summary only — not a recommendation.',
+    ],
+  },
 ];
 
 export function earningsBySymbol(symbol: string) {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { FeatureCollection, Geometry } from 'geojson';
 import { ALL_LIGHTS, MAP_CONNECTIONS, MAP_HUBS } from '../../data/mapHubs';
+import { useInView } from '../../hooks/useInView';
 import { createPath, createProjection, loadWorldGeo, MAP_H, MAP_W, projectPoint } from '../../lib/worldGeo';
 
 const hubById = Object.fromEntries(MAP_HUBS.map((h) => [h.id, h]));
@@ -28,12 +29,14 @@ const REGION_SPARKS = [
 ];
 
 export default function WorldMap() {
+  const { setRef, inView } = useInView('200px');
   const [geo, setGeo] = useState<FeatureCollection<Geometry> | null>(null);
   const [flows, setFlows] = useState<FlowDot[]>(() => Array.from({ length: 8 }, (_, i) => pickFlow(i)));
 
   useEffect(() => {
+    if (!inView) return;
     loadWorldGeo().then(setGeo).catch(() => undefined);
-  }, []);
+  }, [inView]);
 
   const projection = useMemo(() => (geo ? createProjection(geo) : null), [geo]);
   const path = useMemo(() => (projection ? createPath(projection) : null), [projection]);
@@ -102,15 +105,17 @@ export default function WorldMap() {
   }, [hubs.length]);
 
   return (
-    <div className="map-panel relative mx-auto w-full max-w-[920px] overflow-hidden rounded-[14px] border border-[#C76A16]/20">
+    <div
+      ref={setRef}
+      className="map-panel relative mx-auto w-full max-w-[920px] overflow-hidden rounded-[14px] border border-[#C76A16]/20"
+    >
       <p className="absolute left-4 top-3 z-10 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#C76A16] md:left-5 md:top-4">
         International stock intelligence
       </p>
 
       <svg
         viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-        className="block w-full"
-        style={{ aspectRatio: '2 / 1', minHeight: 420 }}
+        className="map-svg block w-full"
         aria-label="Global market activity map"
       >
         <defs>
@@ -250,7 +255,7 @@ export default function WorldMap() {
         <rect width={MAP_W} height={MAP_H} fill="url(#mapFade)" pointerEvents="none" />
       </svg>
 
-      <div className="absolute bottom-14 left-3 z-10 max-w-[280px] md:bottom-16 md:left-4 md:max-w-sm">
+      <div className="absolute bottom-14 left-3 z-10 max-w-[240px] md:bottom-16 md:left-4 md:max-w-sm">
         <div className="glass-shield">
           <span className="shield-accent-bar" aria-hidden />
           <div className="glass-shield-inner p-3 md:p-3.5">

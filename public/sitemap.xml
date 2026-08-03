@@ -9,4 +9,8 @@
   <url><loc>https://sg16finance.com/privacy</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>https://sg16finance.com/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://sg16finance.com/premium</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://sg16finance.com/sectors/industrials</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sg16finance.com/earnings/GOOGL</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sg16finance.com/earnings/AMZN</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://sg16finance.com/earnings/META</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
 </urlset>

@@ -354,3 +354,33 @@ a {
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
+
+/* Map — responsive height, lazy-friendly */
+.map-svg {
+  aspect-ratio: 2 / 1;
+  min-height: 220px;
+}
+
+@media (min-width: 640px) {
+  .map-svg {
+    min-height: 320px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .map-svg {
+    min-height: 420px;
+  }
+}
+
+.home-shield-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  .home-shield-stack {
+    gap: 0;
+  }
+}

@@ -56,6 +56,17 @@ export const SECTORS: Sector[] = [
     risks: ['Weak spending', 'Inventory gluts', 'Currency headwinds', 'Private label pressure'],
     outlook: 'Regional income trends matter as much as global brands — watch US, Europe, and Asia separately.',
   },
+  {
+    slug: 'industrials',
+    name: 'Industrials',
+    tagline: 'Manufacturing, aerospace & infrastructure',
+    summary:
+      'Industrials bridge the real economy and equity markets — orders, backlogs, and PMI data often lead earnings revisions.',
+    drivers: ['PMI / ISM', 'Cap goods orders', 'Freight rates', 'Government infrastructure', 'USD'],
+    keyPlayers: ['GE Aerospace', 'Siemens', 'Honeywell', 'CAT', 'Airbus'],
+    risks: ['Cycle downturn', 'Supply chain bottlenecks', 'Labor costs', 'China industrial slowdown'],
+    outlook: 'Reshoring and energy transition capex support select names; breadth depends on global PMI recovery.',
+  },
 ];
 
 export function sectorBySlug(slug: string) {
