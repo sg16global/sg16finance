@@ -16,7 +16,8 @@ const FINNHUB = {
   hsi: '^HSI',
 };
 
-export async function onRequestGet(_request, env) {
+export async function onRequestGet(context) {
+  const env = context.env;
   const headers = {
     'Content-Type': 'application/json',
     'Cache-Control': 'public, max-age=60',
