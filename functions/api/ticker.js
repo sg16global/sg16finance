@@ -60,7 +60,7 @@ export async function onRequestGet(_request, env) {
     'Access-Control-Allow-Origin': '*',
   };
 
-  if (!env.FINNHUB_API_KEY) {
+  if (!env?.FINNHUB_API_KEY) {
     return Response.json({ row1: ROW1, row2: ROW2, source: 'seed' }, { headers });
   }
 
