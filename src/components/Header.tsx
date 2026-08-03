@@ -20,7 +20,7 @@ export default function Header() {
         <Link to="/" className="flex shrink-0 items-center">
           <img
             src={logoFallback ? '/logo.svg' : '/logo.png'}
-            alt="SG16 Finance"
+            alt="SG16 Finance — Global Intelligence"
             className="h-10 w-auto max-w-[min(100vw-8rem,220px)] object-contain object-left sm:h-11"
             width={220}
             height={48}
