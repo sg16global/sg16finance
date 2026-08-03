@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <meta property="og:image" content="https://sg16finance.com/logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <meta
+      name="description"
+      content="SG16 Finance — Global Intelligence. Institutional-grade market context, sector analysis, and plain-English earnings breakdowns."
+    />
+    <meta name="theme-color" content="#07090C" />
+    <meta property="og:title" content="SG16 Finance — Global Intelligence" />
+    <meta property="og:description" content="Premium financial intelligence dashboard. Educational content only." />
+    <meta property="og:url" content="https://sg16finance.com" />
+    <title>SG16 Finance — Global Intelligence</title>
+  </head>
+  <body style="margin:0;background:#07090C;color:#B6BDC8;font-family:Inter,system-ui,sans-serif">
+    <div id="root">
+      <div style="display:flex;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:12px">
+        <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.08);border-top-color:#C76A16;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+        <p style="margin:0;color:#7D8594;font-size:14px">Loading SG16 Finance…</p>
+      </div>
+    </div>
+    <noscript>
+      <p style="padding:2rem;text-align:center;color:#B6BDC8">
+        JavaScript is required. Open <strong>http://localhost:5173</strong> in Chrome or Edge.
+      </p>
+    </noscript>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
