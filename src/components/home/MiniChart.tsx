@@ -64,7 +64,7 @@ export default function MiniChart({
     <svg viewBox={`0 0 ${w} ${height}`} className="h-full w-full" preserveAspectRatio="none" aria-hidden>
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FF9A3C" stopOpacity={glow ? 0.45 : 0.3} />
+          <stop offset="0%" stopColor="#C76A16" stopOpacity={glow ? 0.25 : 0.15} />
           <stop offset="100%" stopColor="#C76A16" stopOpacity="0" />
         </linearGradient>
         {glow && (
@@ -78,26 +78,13 @@ export default function MiniChart({
         )}
       </defs>
       <polygon points={`0,${height} ${points} ${w},${height}`} fill={`url(#${gradientId})`} />
-      {glow && (
-        <polyline
-          points={points}
-          fill="none"
-          stroke="#FF9A3C"
-          strokeWidth={strokeWidth + 2}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          opacity={0.35}
-          filter={`url(#${glowId})`}
-        />
-      )}
       <polyline
         points={points}
         fill="none"
-        stroke="#FF9A3C"
+        stroke="#C76A16"
         strokeWidth={strokeWidth}
         strokeLinejoin="round"
         strokeLinecap="round"
-        filter={glow ? `url(#${glowId})` : undefined}
       />
     </svg>
   );

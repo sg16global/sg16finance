@@ -1,30 +1,34 @@
-import { useId } from 'react';
-import MiniChart from './MiniChart';
+import type { AssetCategory } from '../../data/assetCategories';
+import FinancialChart from './FinancialChart';
+import { formatPrice, formatUsd } from '../../lib/format';
 
 type Props = {
   data: number[];
-  category: string;
+  category: AssetCategory;
 };
 
+function chartFormatter(category: AssetCategory) {
+  if (category === 'forex') {
+    return (v: number) => formatPrice(v);
+  }
+  if (category === 'commodities') {
+    return (v: number) => formatUsd(v);
+  }
+  if (category === 'crypto') {
+    return (v: number) => (v >= 1000 ? formatUsd(v) : formatPrice(v));
+  }
+  return (v: number) => formatPrice(v);
+}
+
 export default function WorkspaceChart({ data, category }: Props) {
-  const patternId = useId();
-
   return (
-    <div className="workspace-chart relative overflow-hidden rounded-xl bg-black/50 ring-1 ring-white/[0.06]">
-      <div className="workspace-chart-grid pointer-events-none absolute inset-0" aria-hidden />
-      <div className="workspace-chart-glow pointer-events-none absolute -right-8 -bottom-8 h-48 w-48 rounded-full bg-[#C76A16]/20 blur-3xl" aria-hidden />
-
-      <svg className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.04]" aria-hidden>
-        <defs>
-          <pattern id={patternId} width="24" height="24" patternUnits="userSpaceOnUse">
-            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#C76A16" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill={`url(#${patternId})`} />
-      </svg>
-
-      <div key={category} className="workspace-chart-body relative h-[160px] p-3 md:h-[200px] md:p-4">
-        <MiniChart data={data} height={180} glow strokeWidth={2} />
+    <div className="workspace-chart rounded-xl bg-[#0A0D12] ring-1 ring-white/[0.08]">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2.5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7D8594]">Price chart · 30 days</p>
+        <p className="font-mono-data text-[10px] tabular-nums text-[#C76A16]">Daily close</p>
+      </div>
+      <div key={category} className="workspace-chart-body px-2 py-2 md:px-3 md:py-3">
+        <FinancialChart data={data} height={220} formatValue={chartFormatter(category)} />
       </div>
     </div>
   );

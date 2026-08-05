@@ -61,9 +61,9 @@ export default function AssetCategoryCards({ selected, onSelect, live, loading }
               )}
             </div>
 
-            <div className="mt-3 h-14 overflow-hidden rounded-lg bg-black/40 p-1 ring-1 ring-[#C76A16]/10">
+            <div className="mt-3 h-14 overflow-hidden rounded-lg bg-black/40 p-1 ring-1 ring-white/[0.06]">
               {liveCard?.card.sparkline.length ? (
-                <MiniChart data={liveCard.card.sparkline} height={48} glow />
+                <MiniChart data={liveCard.card.sparkline} height={48} />
               ) : (
                 <div className="flex h-full items-center justify-center text-[9px] text-[#7D8594]">
                   {loading ? 'Loading…' : 'No data'}
