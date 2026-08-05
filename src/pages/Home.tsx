@@ -1,24 +1,66 @@
-import AdSlot from '../components/AdSlot';
+import { useRef, useState } from 'react';
+import AssetCategoryCards from '../components/home/AssetCategoryCards';
+import CategoryWorkspace from '../components/home/CategoryWorkspace';
 import InsightsPanel from '../components/home/InsightsPanel';
-import ShieldCards from '../components/home/ShieldCards';
-import WorldMap from '../components/home/WorldMap';
+import { SectionLabel } from '../components/home/ui';
+import type { AssetCategory } from '../data/assetCategories';
+import { useDashboardData } from '../context/DashboardContext';
 
 export default function Home() {
+  const [selectedCategory, setSelectedCategory] = useState<AssetCategory>('crypto');
+  const { data, loading } = useDashboardData();
+  const detailRef = useRef<HTMLDivElement>(null);
+
+  function handleSelect(category: AssetCategory) {
+    setSelectedCategory(category);
+    window.requestAnimationFrame(() => {
+      detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+  }
+
   return (
     <div className="dashboard-canvas page-flow mx-auto max-w-[1440px] px-2 pt-1 pb-6 sm:px-3 lg:px-5 lg:pb-8">
-      {/* Mobile: map first, then ads + cards stack. Desktop: 3-column grid */}
-      <div className="flex flex-col items-stretch gap-3 sm:gap-4 lg:grid lg:items-start lg:grid-cols-[minmax(0,280px)_1fr_minmax(0,280px)] xl:grid-cols-[minmax(0,300px)_1fr_minmax(0,300px)] xl:gap-4">
-        <div className="order-1 min-w-0 lg:order-2 lg:col-span-1">
-          <WorldMap />
+      <section aria-label="Market categories">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3 pt-2">
+          <div>
+            <SectionLabel>Market categories</SectionLabel>
+            <h2 className="mt-1.5 text-base font-bold tracking-tight text-white md:text-lg">
+              Select a market to explore
+            </h2>
+            <p className="mt-1 max-w-xl text-xs leading-relaxed text-[#7D8594] md:text-sm">
+              Click any card below — live prices, charts, and metrics update instantly in the detail panel.
+            </p>
+          </div>
+          <p className="hidden text-[10px] uppercase tracking-[0.14em] text-[#7D8594] sm:block">
+            Tap a card · View details ↓
+          </p>
         </div>
 
-        <AdSlot placement="home-mid" format="horizontal" className="order-2 lg:order-none lg:col-span-3 lg:hidden" />
+        <AssetCategoryCards
+          selected={selectedCategory}
+          onSelect={handleSelect}
+          live={data.categories}
+          loading={loading}
+        />
+      </section>
 
-        <ShieldCards side="left" className="order-3 lg:order-1" />
-        <ShieldCards side="right" className="order-4 lg:order-3" />
+      <div ref={detailRef} className="market-detail-bridge mt-1 scroll-mt-24">
+        <div className="market-detail-bridge-line" aria-hidden />
+        <p className="market-detail-bridge-label">
+          <span className="fin-section-accent inline-block align-middle" aria-hidden />
+          Live detail view
+        </p>
       </div>
 
-      <AdSlot placement="home-bottom" format="horizontal" className="mt-4" />
+      <CategoryWorkspace
+        key={selectedCategory}
+        category={selectedCategory}
+        live={data.categories[selectedCategory]}
+        source={data.source}
+        updatedAt={data.updatedAt}
+        loading={loading}
+      />
+
       <InsightsPanel />
     </div>
   );

@@ -360,25 +360,7 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
-/* Map — responsive height, lazy-friendly */
-.map-svg {
-  aspect-ratio: 2 / 1;
-  min-height: 220px;
-}
-
-@media (min-width: 640px) {
-  .map-svg {
-    min-height: 320px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .map-svg {
-    min-height: 420px;
-  }
-}
-
-/* ── Mobile-first layout (matches geo / engine projects) ── */
+/* ── Mobile-first layout ── */
 .page-flow {
   width: 100%;
   max-width: 100vw;
@@ -399,23 +381,11 @@ a {
 }
 
 @media (max-width: 767px) {
-  .map-panel .glass-shield {
-    display: none;
-  }
-
-  .map-panel .map-caption-mobile {
-    display: block;
-  }
-
   .fin-btn-ghost,
   .fin-btn-primary {
     min-height: 44px;
     padding: 10px 14px;
     font-size: 12px;
-  }
-
-  .ad-slot-live ins {
-    max-width: 100%;
   }
 
   .ticker-scroll,
@@ -424,8 +394,144 @@ a {
   }
 }
 
-@media (min-width: 768px) {
-  .map-panel .map-caption-mobile {
-    display: none;
+/* ── Asset category cards (Stakent-style) ── */
+.asset-category-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    rgba(255, 255, 255, 0.02) 45%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  backdrop-filter: blur(16px) saturate(1.15);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  padding: 16px;
+  cursor: pointer;
+  transition:
+    border-color 250ms ease,
+    box-shadow 250ms ease,
+    transform 250ms ease,
+    background 250ms ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.asset-category-card:hover {
+  border-color: rgba(199, 106, 22, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    0 0 20px rgba(199, 106, 22, 0.08);
+  transform: translateY(-2px);
+}
+
+.asset-category-card--active {
+  border-color: rgba(199, 106, 22, 0.45);
+  background: linear-gradient(
+    160deg,
+    rgba(199, 106, 22, 0.12) 0%,
+    rgba(255, 255, 255, 0.03) 50%,
+    rgba(0, 0, 0, 0.25) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 154, 60, 0.2),
+    0 8px 36px rgba(0, 0, 0, 0.5),
+    0 0 28px rgba(199, 106, 22, 0.15);
+}
+
+.asset-category-card--active::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 8px solid rgba(199, 106, 22, 0.55);
+  filter: drop-shadow(0 0 6px rgba(199, 106, 22, 0.4));
+  pointer-events: none;
+}
+
+.asset-category-card--active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 154, 60, 0.55), transparent);
+  pointer-events: none;
+}
+
+.asset-category-card:focus-visible {
+  outline: 2px solid rgba(199, 106, 22, 0.6);
+  outline-offset: 2px;
+}
+
+/* ── Workspace chart panel ── */
+.workspace-chart {
+  box-shadow:
+    inset 0 0 80px rgba(199, 106, 22, 0.06),
+    inset 0 1px 0 rgba(255, 154, 60, 0.08);
+}
+
+.workspace-chart-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+}
+
+.workspace-chart-body {
+  animation: workspace-fade-in 400ms ease;
+}
+
+.category-workspace {
+  animation: workspace-fade-in 350ms ease;
+}
+
+@keyframes workspace-fade-in {
+  from {
+    opacity: 0.6;
+    transform: translateY(4px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Card → detail panel bridge ── */
+.market-detail-bridge {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0 4px;
+}
+
+.market-detail-bridge-line {
+  width: 1px;
+  height: 20px;
+  background: linear-gradient(180deg, rgba(199, 106, 22, 0.5), rgba(199, 106, 22, 0.08));
+}
+
+.market-detail-bridge-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7d8594;
 }

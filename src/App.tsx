@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
+import { DashboardProvider } from './context/DashboardContext';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Disclaimer from './pages/Disclaimer';
@@ -15,7 +16,7 @@ import Sectors from './pages/Sectors';
 export default function App() {
   return (
     <Routes>
-      <Route element={<Layout />}>
+      <Route element={<DashboardProvider><Layout /></DashboardProvider>}>
         <Route index element={<Home />} />
         <Route path="markets" element={<Markets />} />
         <Route path="sectors" element={<Sectors />} />
