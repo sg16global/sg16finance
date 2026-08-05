@@ -83,16 +83,16 @@ export default function CategoryWorkspace({ category, live, source, updatedAt, l
           <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-[#7D8594] md:text-sm">{staticWs.subheadline}</p>
         </div>
 
-        <div className="flex shrink-0 gap-6 lg:text-right">
+        <div className="grid w-full shrink-0 grid-cols-2 gap-4 sm:flex sm:gap-6 lg:text-right">
           <div>
             <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#7D8594]">{ws.primaryLabel}</p>
-            <p className="mt-1 font-mono-data text-2xl font-bold tabular-nums text-white md:text-3xl">
+            <p className="mt-1 font-mono-data text-xl font-bold tabular-nums text-white sm:text-2xl md:text-3xl">
               {formatPrimary(ws.primaryValue, category, ws.primaryLabel)}
             </p>
           </div>
           <div>
             <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#7D8594]">{ws.secondaryLabel}</p>
-            <p className="mt-1 font-mono-data text-2xl font-bold tabular-nums text-[#FF9A3C] md:text-3xl">
+            <p className="mt-1 font-mono-data text-xl font-bold tabular-nums text-[#FF9A3C] sm:text-2xl md:text-3xl">
               {formatSecondary(ws.secondaryValue, category, ws.secondaryIsPct, ws.secondaryLabel)}
             </p>
           </div>
@@ -103,7 +103,7 @@ export default function CategoryWorkspace({ category, live, source, updatedAt, l
         <WorkspaceChart data={ws.chartData} category={category} />
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-3 grid-cols-2 lg:grid-cols-4">
         {ws.metrics.map((metric) => {
           const positive = metric.changePct >= 0;
           const display = formatMetricValue(metric.value, category, metric.label);

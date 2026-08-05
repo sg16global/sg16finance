@@ -35,7 +35,7 @@ type Props = { row1: TickerItem[]; row2: TickerItem[] };
 
 export default function LiveTicker({ row1, row2 }: Props) {
   return (
-    <div className="bg-[#0D1118]">
+    <div className="live-ticker bg-[#0D1118]">
       <TickerRow items={row1} />
       <TickerRow items={row2} reverse />
     </div>

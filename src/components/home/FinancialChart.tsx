@@ -5,6 +5,8 @@ type Props = {
   data: number[];
   height?: number;
   formatValue?: (value: number) => string;
+  /** Tighter padding for phones in portrait or landscape */
+  compact?: boolean;
 };
 
 function defaultFormat(value: number): string {
@@ -12,7 +14,12 @@ function defaultFormat(value: number): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
-export default function FinancialChart({ data, height = 220, formatValue = defaultFormat }: Props) {
+export default function FinancialChart({
+  data,
+  height = 220,
+  formatValue = defaultFormat,
+  compact = false,
+}: Props) {
   const fillId = useId();
 
   if (data.length < 2) {
@@ -21,7 +28,10 @@ export default function FinancialChart({ data, height = 220, formatValue = defau
     );
   }
 
-  const pad = { top: 16, right: 16, bottom: 32, left: 68 };
+  const pad = compact
+    ? { top: 10, right: 8, bottom: 22, left: 46 }
+    : { top: 16, right: 16, bottom: 32, left: 68 };
+  const labelSize = compact ? 8 : 10;
   const width = 640;
   const chartW = width - pad.left - pad.right;
   const chartH = height - pad.top - pad.bottom;
@@ -79,7 +89,7 @@ export default function FinancialChart({ data, height = 220, formatValue = defau
             y={y + 4}
             textAnchor="end"
             fill="#7D8594"
-            fontSize="10"
+            fontSize={labelSize}
             fontFamily="IBM Plex Mono, monospace"
           >
             {formatValue(value)}
@@ -89,15 +99,29 @@ export default function FinancialChart({ data, height = 220, formatValue = defau
 
       <line x1={pad.left} y1={pad.top + chartH} x2={pad.left + chartW} y2={pad.top + chartH} stroke="rgba(255,255,255,0.12)" />
 
-      <text x={pad.left} y={height - 10} fill="#7D8594" fontSize="10" fontFamily="Inter, sans-serif">
+      <text x={pad.left} y={height - 8} fill="#7D8594" fontSize={labelSize} fontFamily="Inter, sans-serif">
         30 days ago
       </text>
-      <text x={pad.left + chartW} y={height - 10} fill="#7D8594" fontSize="10" textAnchor="end" fontFamily="Inter, sans-serif">
+      <text
+        x={pad.left + chartW}
+        y={height - 8}
+        fill="#7D8594"
+        fontSize={labelSize}
+        textAnchor="end"
+        fontFamily="Inter, sans-serif"
+      >
         Today
       </text>
 
       <path d={areaPath} fill={`url(#${fillId})`} />
-      <path d={linePath} fill="none" stroke={lineColor} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <path
+        d={linePath}
+        fill="none"
+        stroke={lineColor}
+        strokeWidth={compact ? 1.5 : 2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
 
       {coords.map((p, i) =>
         i % 4 === 0 || i === coords.length - 1 ? (

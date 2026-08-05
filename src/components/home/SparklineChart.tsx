@@ -3,15 +3,18 @@ import { useId } from 'react';
 type Props = {
   data: number[];
   height?: number;
+  compact?: boolean;
 };
 
 /** Compact sparkline — same style as the big chart, fits inside category cards */
-export default function SparklineChart({ data, height = 52 }: Props) {
+export default function SparklineChart({ data, height = 52, compact = false }: Props) {
   const fillId = useId();
 
   if (data.length < 2) return null;
 
-  const pad = { top: 6, right: 8, bottom: 4, left: 42 };
+  const pad = compact
+    ? { top: 4, right: 6, bottom: 2, left: 30 }
+    : { top: 6, right: 8, bottom: 4, left: 42 };
   const width = 200;
   const chartW = width - pad.left - pad.right;
   const chartH = height - pad.top - pad.bottom;
@@ -58,10 +61,10 @@ export default function SparklineChart({ data, height = 52 }: Props) {
         strokeDasharray="3 4"
       />
 
-      <text x={pad.left - 4} y={pad.top + 3} textAnchor="end" fill="#7D8594" fontSize="7" fontFamily="IBM Plex Mono, monospace">
+      <text x={pad.left - 4} y={pad.top + 3} textAnchor="end" fill="#7D8594" fontSize={compact ? 6 : 7} fontFamily="IBM Plex Mono, monospace">
         {fmt(max)}
       </text>
-      <text x={pad.left - 4} y={pad.top + chartH} textAnchor="end" fill="#7D8594" fontSize="7" fontFamily="IBM Plex Mono, monospace">
+      <text x={pad.left - 4} y={pad.top + chartH} textAnchor="end" fill="#7D8594" fontSize={compact ? 6 : 7} fontFamily="IBM Plex Mono, monospace">
         {fmt(min)}
       </text>
 

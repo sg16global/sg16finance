@@ -15,13 +15,13 @@ export default function Header() {
   const [logoFallback, setLogoFallback] = useState(false);
 
   return (
-    <header className="safe-top sticky top-0 z-50 border-b border-white/[0.08] bg-[#07090C]/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1440px] items-center gap-3 px-4 py-2.5 lg:gap-5 lg:px-6">
+    <header className="site-header safe-top sticky top-0 z-50 border-b border-white/[0.08] bg-[#07090C]/95 backdrop-blur-md">
+      <div className="mx-auto flex max-w-[1440px] items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5 lg:gap-5 lg:px-6">
         <Link to="/" className="flex shrink-0 items-center">
           <img
             src={logoFallback ? '/logo.svg' : '/logo.png'}
             alt="SG16 Finance — Global Intelligence"
-            className="h-10 w-auto max-w-[min(100vw-8rem,220px)] object-contain object-left sm:h-11"
+            className="site-logo h-9 w-auto max-w-[min(42vw,180px)] object-contain object-left sm:h-10 md:h-11 md:max-w-[min(100vw-8rem,220px)]"
             width={220}
             height={48}
             onError={() => setLogoFallback(true)}
@@ -48,13 +48,13 @@ export default function Header() {
           </Link>
           <Link
             to="/premium"
-            className="rounded-lg bg-[#C76A16] px-3 py-2 text-xs font-semibold text-white transition duration-200 hover:bg-[#D97B22] accent-glow hover-lift sm:px-4"
+            className="rounded-lg bg-[#C76A16] px-2.5 py-1.5 text-[11px] font-semibold text-white transition duration-200 hover:bg-[#D97B22] accent-glow hover-lift sm:px-4 sm:py-2 sm:text-xs"
           >
             Get Started
           </Link>
         </div>
       </div>
-      <div className="border-t border-white/[0.06] px-4 pb-2.5 md:hidden">
+      <div className="site-header-search border-t border-white/[0.06] px-3 pb-2 sm:px-4 sm:pb-2.5 md:hidden">
         <SearchBar />
       </div>
     </header>

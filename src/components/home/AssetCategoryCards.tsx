@@ -2,6 +2,7 @@ import type { AssetCategory } from '../../data/assetCategories';
 import { CATEGORY_CARDS } from '../../data/assetCategories';
 import type { LiveCategoryData } from '../../types';
 import { formatPct } from '../../lib/format';
+import { useViewport } from '../../hooks/useViewport';
 import SparklineChart from './SparklineChart';
 import CategoryIcon from './CategoryIcon';
 
@@ -13,8 +14,11 @@ type Props = {
 };
 
 export default function AssetCategoryCards({ selected, onSelect, live, loading }: Props) {
+  const viewport = useViewport();
+  const compact = viewport === 'mobile-portrait' || viewport === 'mobile-landscape';
+
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="asset-category-grid grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 xl:grid-cols-4">
       {CATEGORY_CARDS.map((card) => {
         const isActive = selected === card.id;
         const liveCard = live[card.id];
@@ -61,9 +65,9 @@ export default function AssetCategoryCards({ selected, onSelect, live, loading }
               )}
             </div>
 
-            <div className="mt-3 h-16 overflow-hidden rounded-lg bg-[#0A0D12] px-1 py-0.5 ring-1 ring-white/[0.06]">
+            <div className="mt-3 h-14 overflow-hidden rounded-lg bg-[#0A0D12] px-1 py-0.5 ring-1 ring-white/[0.06] sm:h-16">
               {liveCard?.card.sparkline.length ? (
-                <SparklineChart data={liveCard.card.sparkline} height={56} />
+                <SparklineChart data={liveCard.card.sparkline} height={compact ? 48 : 56} compact={compact} />
               ) : (
                 <div className="flex h-full items-center justify-center text-[9px] text-[#7D8594]">
                   {loading ? 'Loading…' : 'No data'}

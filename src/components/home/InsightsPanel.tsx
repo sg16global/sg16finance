@@ -19,7 +19,7 @@ export default function InsightsPanel() {
         Real-time sector and equity performance from Yahoo Finance. Educational context only — not investment advice.
       </p>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid gap-3 grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4">
         <DataCell title="Risk analysis">
           <p className="text-xs leading-relaxed text-[#B6BDC8]">
             {loading

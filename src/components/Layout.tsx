@@ -19,7 +19,7 @@ export default function Layout() {
       <DisclaimerBar />
       {isHome && (row1.length > 0 || row2.length > 0) && <LiveTicker row1={row1} row2={row2} />}
       <Header />
-      <main className="flex-1">
+      <main className="main-content flex-1 pb-4">
         <Outlet />
       </main>
       <Footer />
