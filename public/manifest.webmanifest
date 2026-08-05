@@ -1,23 +1,56 @@
 {
+  "id": "/",
   "name": "SG16 Finance",
-  "short_name": "SG16 Finance",
-  "description": "Institutional-grade market intelligence — live prices, charts, and news.",
+  "short_name": "SG16",
+  "description": "Live markets, charts, and news — institutional-grade financial intelligence.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#07090C",
   "theme_color": "#07090C",
   "orientation": "any",
+  "categories": ["finance", "business", "news"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/favicon.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "/apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/og-image.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Markets",
+      "short_name": "Markets",
+      "url": "/markets",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Sectors",
+      "short_name": "Sectors",
+      "url": "/sectors",
+      "icons": [{ "src": "/favicon.png", "sizes": "192x192" }]
     }
   ]
 }

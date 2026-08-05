@@ -563,6 +563,31 @@ html {
   overflow-x: clip;
 }
 
+/* Mobile app shell — bottom tab bar + safe area */
+@media (max-width: 767px) {
+  .app-main {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  }
+
+  .app-shell .safe-bottom {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+
+  body:has(.cookie-banner) .app-main {
+    padding-bottom: calc(9rem + env(safe-area-inset-bottom));
+  }
+}
+
+.mobile-tab-item:active {
+  transform: scale(0.96);
+}
+
+@media (display-mode: standalone) {
+  .site-header {
+    padding-top: max(env(safe-area-inset-top), 0.25rem);
+  }
+}
+
 /* Portrait phone */
 @media (max-width: 479px) {
   .asset-category-card {

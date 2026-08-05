@@ -4,6 +4,8 @@ import CookieBanner from './CookieBanner';
 import DisclaimerBar from './DisclaimerBar';
 import Footer from './Footer';
 import Header from './Header';
+import InstallPrompt from './InstallPrompt';
+import MobileTabBar from './MobileTabBar';
 import LiveTicker from './home/LiveTicker';
 
 export default function Layout() {
@@ -19,10 +21,12 @@ export default function Layout() {
       <DisclaimerBar />
       {isHome && (row1.length > 0 || row2.length > 0) && <LiveTicker row1={row1} row2={row2} />}
       <Header />
-      <main className="main-content flex-1 pb-4">
+      <main className="main-content app-main flex-1 pb-4">
         <Outlet />
       </main>
       <Footer />
+      <MobileTabBar />
+      <InstallPrompt />
       <CookieBanner />
     </div>
   );
