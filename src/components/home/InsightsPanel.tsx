@@ -74,7 +74,7 @@ export default function InsightsPanel() {
           <ul className="space-y-1.5 text-[11px] text-[#B6BDC8]">
             <li className="flex justify-between">
               <span>Crypto</span>
-              <span className="font-mono-data text-[#C76A16]">Binance / CoinGecko</span>
+              <span className="font-mono-data text-[#C76A16]">Binance / Yahoo</span>
             </li>
             <li className="flex justify-between">
               <span>Stocks & Commodities</span>
