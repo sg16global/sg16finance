@@ -1,0 +1,23 @@
+{
+  "name": "SG16 Finance",
+  "short_name": "SG16 Finance",
+  "description": "Institutional-grade market intelligence — live prices, charts, and news.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07090C",
+  "theme_color": "#07090C",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

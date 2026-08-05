@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import { useDashboardData } from '../../context/DashboardContext';
 import { formatPct, timeAgo } from '../../lib/format';
+import NewsList from './NewsList';
 import { DataCell, LiveBadge, SectionLabel, ShieldCard } from './ui';
 
 export default function InsightsPanel() {
   const { data, loading } = useDashboardData();
-  const { insights, source, updatedAt } = data;
+  const { insights, headlines, source, updatedAt } = data;
   const isLive = source === 'live' || source === 'partial';
 
   return (
@@ -16,10 +17,19 @@ export default function InsightsPanel() {
       </div>
       <h2 className="mt-2 text-sm font-bold tracking-tight text-white md:text-base">Live market insights</h2>
       <p className="mt-2 max-w-3xl text-xs leading-relaxed text-[#7D8594] md:text-sm">
-        Real-time sector and equity performance from Yahoo Finance. Educational context only — not investment advice.
+        Real-time prices, charts, sector performance, and Yahoo Finance headlines. Educational context only — not investment advice.
       </p>
 
-      <div className="mt-4 grid gap-3 grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 space-y-3">
+        <DataCell title="Market news">
+          {loading && !headlines.length ? (
+            <p className="text-xs text-[#7D8594]">Loading headlines…</p>
+          ) : (
+            <NewsList items={headlines.slice(0, 5)} />
+          )}
+        </DataCell>
+
+        <div className="grid gap-3 grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4">
         <DataCell title="Risk analysis">
           <p className="text-xs leading-relaxed text-[#B6BDC8]">
             {loading
@@ -86,6 +96,7 @@ export default function InsightsPanel() {
             </li>
           </ul>
         </DataCell>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] pt-4">

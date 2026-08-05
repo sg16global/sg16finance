@@ -1,13 +1,16 @@
 import type { AssetCategory } from '../../data/assetCategories';
-import { CATEGORY_WORKSPACES } from '../../data/assetCategories';
-import type { LiveCategoryData } from '../../types';
+import { CATEGORY_CARDS, CATEGORY_WORKSPACES } from '../../data/assetCategories';
+import type { LiveCategoryData, NewsItem } from '../../types';
 import { formatPct, formatPrice, formatUsd, timeAgo } from '../../lib/format';
+import { buildLiveSummary } from '../../lib/liveSummary';
+import NewsList from './NewsList';
 import WorkspaceChart from './WorkspaceChart';
 import { DataCell, LiveBadge, SectionLabel, ShieldCard } from './ui';
 
 type Props = {
   category: AssetCategory;
   live: LiveCategoryData | null;
+  news: NewsItem[];
   source: 'live' | 'partial' | 'offline';
   updatedAt: string;
   loading?: boolean;
@@ -44,7 +47,7 @@ function formatMetricValue(value: number, category: AssetCategory, label: string
   return formatPrice(value);
 }
 
-export default function CategoryWorkspace({ category, live, source, updatedAt, loading }: Props) {
+export default function CategoryWorkspace({ category, live, news, source, updatedAt, loading }: Props) {
   const staticWs = CATEGORY_WORKSPACES[category];
   const isLive = source === 'live' || source === 'partial';
 
@@ -70,29 +73,31 @@ export default function CategoryWorkspace({ category, live, source, updatedAt, l
   }
 
   const ws = live.workspace;
+  const liveSummary = buildLiveSummary(category, ws);
+  const cardMeta = CATEGORY_CARDS.find((c) => c.id === category);
 
   return (
     <ShieldCard className="category-workspace mt-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 flex-1">
+      <div className="workspace-header space-y-4">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <SectionLabel>{staticWs.subheadline.split('·')[0]?.trim() ?? 'Market workspace'}</SectionLabel>
+            <SectionLabel>{cardMeta?.subtitle.split('·')[0]?.trim() ?? 'Live market'}</SectionLabel>
             {isLive && <LiveBadge />}
           </div>
           <h2 className="mt-2 text-lg font-bold tracking-tight text-white md:text-xl">{staticWs.headline}</h2>
-          <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-[#7D8594] md:text-sm">{staticWs.subheadline}</p>
+          <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-[#7D8594] md:text-sm">{liveSummary}</p>
         </div>
 
-        <div className="grid w-full shrink-0 grid-cols-2 gap-4 sm:flex sm:gap-6 lg:text-right">
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#7D8594]">{ws.primaryLabel}</p>
-            <p className="mt-1 font-mono-data text-xl font-bold tabular-nums text-white sm:text-2xl md:text-3xl">
+        <div className="workspace-prices grid grid-cols-2 gap-3 rounded-xl bg-black/30 p-3 ring-1 ring-white/[0.06] sm:gap-4 sm:p-4 md:max-w-lg">
+          <div className="min-w-0">
+            <p className="truncate text-[10px] font-medium uppercase tracking-[0.12em] text-[#7D8594]">{ws.primaryLabel}</p>
+            <p className="mt-1 truncate font-mono-data text-lg font-bold tabular-nums text-white sm:text-xl md:text-2xl">
               {formatPrimary(ws.primaryValue, category, ws.primaryLabel)}
             </p>
           </div>
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#7D8594]">{ws.secondaryLabel}</p>
-            <p className="mt-1 font-mono-data text-xl font-bold tabular-nums text-[#FF9A3C] sm:text-2xl md:text-3xl">
+          <div className="min-w-0">
+            <p className="truncate text-[10px] font-medium uppercase tracking-[0.12em] text-[#7D8594]">{ws.secondaryLabel}</p>
+            <p className="mt-1 truncate font-mono-data text-lg font-bold tabular-nums text-[#FF9A3C] sm:text-xl md:text-2xl">
               {formatSecondary(ws.secondaryValue, category, ws.secondaryIsPct, ws.secondaryLabel)}
             </p>
           </div>
@@ -103,7 +108,7 @@ export default function CategoryWorkspace({ category, live, source, updatedAt, l
         <WorkspaceChart data={ws.chartData} category={category} />
       </div>
 
-      <div className="mt-4 grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {ws.metrics.map((metric) => {
           const positive = metric.changePct >= 0;
           const display = formatMetricValue(metric.value, category, metric.label);
@@ -121,18 +126,14 @@ export default function CategoryWorkspace({ category, live, source, updatedAt, l
 
       <div className="mt-4 border-t border-white/[0.06] pt-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#C76A16]">Key highlights</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#C76A16]">Live market news</p>
           <span className="font-mono-data text-[9px] tabular-nums text-[#7D8594]">
-            {isLive ? `Live · Updated ${timeAgo(updatedAt)}` : 'Offline'}
+            {isLive ? `Yahoo Finance · Updated ${timeAgo(updatedAt)}` : 'Offline'}
           </span>
         </div>
-        <ul className="mt-2.5 space-y-2">
-          {staticWs.highlights.map((item) => (
-            <li key={item} className="fin-list-item text-xs leading-relaxed text-[#B6BDC8] md:text-sm">
-              {item}
-            </li>
-          ))}
-        </ul>
+        <div className="mt-2.5">
+          <NewsList items={news} emptyLabel="Loading headlines…" />
+        </div>
       </div>
     </ShieldCard>
   );

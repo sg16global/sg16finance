@@ -9,6 +9,8 @@ const EMPTY: DashboardPayload = {
   categories: { crypto: null, forex: null, stocks: null, commodities: null },
   ticker: { row1: [], row2: [] },
   insights: { sectors: [], movers: [] },
+  news: { crypto: [], forex: [], stocks: [], commodities: [] },
+  headlines: [],
 };
 
 export function useDashboard() {

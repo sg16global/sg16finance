@@ -72,6 +72,12 @@ export type LiveCategoryData = {
 export type LiveInsightSector = { name: string; changePct: number };
 export type LiveInsightMover = { symbol: string; name: string; changePct: number };
 
+export type NewsItem = {
+  title: string;
+  url: string;
+  publishedAt: string;
+};
+
 export type DashboardPayload = {
   source: 'live' | 'partial' | 'offline';
   updatedAt: string;
@@ -81,4 +87,6 @@ export type DashboardPayload = {
     sectors: LiveInsightSector[];
     movers: LiveInsightMover[];
   };
+  news: Record<'crypto' | 'forex' | 'stocks' | 'commodities', NewsItem[]>;
+  headlines: NewsItem[];
 };

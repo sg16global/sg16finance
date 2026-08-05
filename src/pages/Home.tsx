@@ -56,6 +56,7 @@ export default function Home() {
         key={selectedCategory}
         category={selectedCategory}
         live={data.categories[selectedCategory]}
+        news={data.news[selectedCategory] ?? []}
         source={data.source}
         updatedAt={data.updatedAt}
         loading={loading}
