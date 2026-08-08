@@ -1,2 +1,5 @@
-# After AdSense approval, replace pub-XXXXXXXXXXXXXXXX with your publisher ID.
-# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+# SG16 Finance — ads.txt (sg16finance.com)
+# Google AdSense
+google.com, pub-7094633052216956, DIRECT, f08c47fec0942fa0
+
+# Raptive: add lines from your Raptive dashboard when approved
