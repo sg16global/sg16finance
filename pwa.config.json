@@ -1,0 +1,57 @@
+{
+  "id": "sg16finance",
+  "domain": "sg16finance.com",
+  "manifest_id": "https://sg16finance.com/",
+  "name": "SG16 Finance",
+  "short_name": "SG16 Finance",
+  "description": "Live markets, charts, and news — institutional-grade financial intelligence.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07090C",
+  "theme_color": "#07090C",
+  "categories": ["finance", "business", "news"],
+  "icon_source": "public/logo.svg",
+  "icon_badge_sub": "Finance",
+  "icons_dir": "public/icons",
+  "icon_background": "#07090C",
+  "version": 2,
+  "precache": [
+    "/",
+    "/index.html",
+    "/manifest.webmanifest",
+    "/favicon.png",
+    "/apple-touch-icon.png",
+    "/icons/icon-192.png",
+    "/icons/icon-512.png"
+  ],
+  "shortcuts": [
+    {
+      "name": "Markets",
+      "short_name": "Markets",
+      "url": "/markets"
+    },
+    {
+      "name": "Sectors",
+      "short_name": "Sectors",
+      "url": "/sectors"
+    }
+  ],
+  "outputs": {
+    "manifest": "public/manifest.webmanifest",
+    "sw": "public/sw.js",
+    "pwa_js": "public/pwa-register.js"
+  },
+  "icons": {
+    "any_192": "icons/icon-192.png",
+    "any_512": "icons/icon-512.png",
+    "maskable_512": "icons/icon-512-maskable.png"
+  },
+  "icon_exports": [
+    { "from": "public/icons/icon-192.png", "to": "public/favicon.png" },
+    { "from": "public/icons/icon-192.png", "to": "public/apple-touch-icon.png" },
+    { "from": "public/icons/icon-512.png", "to": "public/og-image.png" }
+  ],
+  "icons_commit": true
+}

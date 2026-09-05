@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "pwa": "node scripts/pwa-generate.mjs .",
+    "build": "npm run pwa && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
