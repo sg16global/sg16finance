@@ -3,7 +3,7 @@
 International stock intelligence — sector overviews, earnings breakdowns, and plain-English market context.
 
 **Domain:** [sg16finance.com](https://sg16finance.com)  
-**Operator:** [Saif Tech Global Limited](https://saiftechglobal.com)
+**Operator:** [Saif Tech Global LLC](https://saiftechglobal.com)
 
 ## Develop
 

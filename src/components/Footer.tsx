@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 
 const NETWORK = [
-  { href: 'https://saiftechglobal.com', label: 'Saif Tech Global' },
+  { href: 'https://saiftechglobal.com', label: 'Saif Tech Global LLC' },
   { href: 'https://sg16engine.com', label: 'SG16 AI Engine' },
   { href: 'https://saifglobal16.info', label: 'Geopolitical Monitor' },
 ];
@@ -62,7 +62,7 @@ export default function Footer() {
             ))}
           </div>
           <p className="text-xs text-[#7D8594]">
-            © {new Date().getFullYear()} Saif Tech Global Limited · UK Co. 16826361
+            © {new Date().getFullYear()} Saif Tech Global LLC · Albuquerque, NM, USA
           </p>
         </div>
       </div>

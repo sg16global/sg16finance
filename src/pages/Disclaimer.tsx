@@ -22,7 +22,8 @@ export default function Disclaimer() {
         </p>
         <h2>Company</h2>
         <p>
-          Operated by Saif Tech Global Limited, England & Wales. Registered office: 5 Summercourt Road, London, E1 0SQ.
+          Operated by Saif Tech Global LLC, USA. Registered office: 8206 Louisiana Blvd NE, Ste A #10595, Albuquerque,
+          NM 87113, USA.
         </p>
       </ProseArticle>
     </PageShell>

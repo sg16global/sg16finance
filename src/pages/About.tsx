@@ -5,15 +5,15 @@ export default function About() {
     <PageShell
       label="Company"
       title="About SG16 Finance"
-      description="International stock intelligence from Saif Tech Global Limited."
+      description="International stock intelligence from Saif Tech Global LLC."
     >
       <ProseArticle>
         <p>
           SG16 Finance is an international stock intelligence platform from{' '}
           <a href="https://saiftechglobal.com" className="fin-link">
-            Saif Tech Global Limited
+            Saif Tech Global LLC
           </a>{' '}
-          (UK Company No. 16826361).
+          (USA — registered in New Mexico).
         </p>
         <h2>Mission</h2>
         <p>

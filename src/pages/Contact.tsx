@@ -13,6 +13,9 @@ export default function Contact() {
             </a>
           </p>
           <p>
+            Registered office: 8206 Louisiana Blvd NE, Ste A #10595, Albuquerque, NM 87113, USA
+          </p>
+          <p>
             Company site:{' '}
             <a href="https://saiftechglobal.com" className="fin-link">
               saiftechglobal.com

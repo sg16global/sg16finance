@@ -5,15 +5,15 @@ export default function Privacy() {
     <PageShell
       label="Legal"
       title="Privacy Policy"
-      description="How Saif Tech Global Limited collects and uses data on sg16finance.com."
+      description="How Saif Tech Global LLC collects and uses data on sg16finance.com."
     >
       <ProseArticle>
         <p className="text-sm text-[#7D8594]">Last updated: August 2026</p>
 
         <h2>Who we are</h2>
         <p>
-          sg16finance.com is operated by Saif Tech Global Limited (UK Company No. 16826361), registered office 5
-          Summercourt Road, London, E1 0SQ. Contact:{' '}
+          sg16finance.com is operated by Saif Tech Global LLC, registered office 8206 Louisiana Blvd NE, Ste A #10595,
+          Albuquerque, NM 87113, USA. Contact:{' '}
           <a href="mailto:info@saiftechglobal.com" className="fin-link">
             info@saiftechglobal.com
           </a>
@@ -55,8 +55,8 @@ export default function Privacy() {
 
         <h2>Your rights</h2>
         <p>
-          Depending on your location, you may have rights to access, correct, or delete personal data. UK and EEA
-          residents may contact us to exercise GDPR rights. California residents may have additional rights under CCPA.
+          Depending on your location, you may have rights to access, correct, or delete personal data. US, EU/EEA, and
+          other regional privacy laws may apply — contact us to exercise your rights.
         </p>
 
         <h2>Children</h2>
