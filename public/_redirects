@@ -1,14 +1,1 @@
-# SPA fallback for real client-side routes only. A bare "/* /index.html 200"
-# makes every unknown URL answer 200 with the app shell, so crawlers index
-# junk paths and 404.html can never be reached. Keep this list in sync with
-# the <Route> table in src/App.tsx.
-/markets        /index.html   200
-/sectors        /index.html   200
-/sectors/*      /index.html   200
-/earnings       /index.html   200
-/earnings/*     /index.html   200
-/about          /index.html   200
-/disclaimer     /index.html   200
-/privacy        /index.html   200
-/contact        /index.html   200
-/premium        /index.html   200
+/*    /index.html   200
