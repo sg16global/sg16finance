@@ -53,6 +53,21 @@ async function hydrate(items, token) {
   );
 }
 
+// GET advertises Access-Control-Allow-Origin, so a preflight must succeed too.
+// Without this, Pages answers OPTIONS with 405 and any request carrying a
+// non-simple header (Authorization, custom, non-form content type) is blocked.
+export async function onRequestOptions() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Accept',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+}
+
 export async function onRequestGet(context) {
   const env = context.env;
   const headers = {
