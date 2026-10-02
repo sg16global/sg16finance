@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { marketAlerts } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { ensureDataSeeded } from "@/db/ensure-data";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await ensureDataSeeded();
+    const db = await getDb();
     const alerts = await db.select().from(marketAlerts).orderBy(desc(marketAlerts.createdAt)).limit(15);
     return NextResponse.json({ success: true, alerts });
   } catch (error) {
@@ -19,6 +20,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const db = await getDb();
     const body = await request.json();
     const { id } = body;
     if (id) {

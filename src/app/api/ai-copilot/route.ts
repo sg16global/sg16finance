@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { marketAssets, sectors, earningsReports } from "@/db/schema";
-import { eq, ilike } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { ensureDataSeeded } from "@/db/ensure-data";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   try {
     await ensureDataSeeded();
+    const db = await getDb();
     const body = await request.json();
     const { query, symbol, mode = "analyst" } = body;
 

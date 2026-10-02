@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { sectors } from "@/db/schema";
 import { ensureDataSeeded } from "@/db/ensure-data";
 import Link from "next/link";
@@ -24,6 +24,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SectorsPage() {
   await ensureDataSeeded();
+  const db = await getDb();
   const allSectors = await db.select().from(sectors);
 
   return (

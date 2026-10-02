@@ -1,6 +1,6 @@
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { earningsReports } from "@/db/schema";
-import { eq, ilike } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
@@ -25,11 +25,12 @@ interface EarningsDetailPageProps {
 export default async function EarningsDetailPage({ params }: EarningsDetailPageProps) {
   const { symbol } = await params;
   const decoded = decodeURIComponent(symbol).toUpperCase();
+  const db = await getDb();
 
   const reports = await db
     .select()
     .from(earningsReports)
-    .where(ilike(earningsReports.symbol, decoded))
+    .where(eq(earningsReports.symbol, decoded))
     .limit(1);
 
   if (!reports || reports.length === 0) {

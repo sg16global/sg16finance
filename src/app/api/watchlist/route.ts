@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { userWatchlist, marketAssets } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ensureDataSeeded } from "@/db/ensure-data";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await ensureDataSeeded();
+    const db = await getDb();
     const watchlist = await db.select().from(userWatchlist).orderBy(userWatchlist.createdAt);
     const assets = await db.select().from(marketAssets);
     const assetMap = new Map(assets.map((a) => [a.symbol, a]));
@@ -38,6 +39,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     await ensureDataSeeded();
+    const db = await getDb();
     const body = await request.json();
     const { symbol, targetPrice, notes, alertCondition } = body;
 
@@ -71,6 +73,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const db = await getDb();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

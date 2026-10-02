@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { earningsReports } from "@/db/schema";
 import { ensureDataSeeded } from "@/db/ensure-data";
 import Link from "next/link";
@@ -18,6 +18,7 @@ export const dynamic = "force-dynamic";
 
 export default async function EarningsPage() {
   await ensureDataSeeded();
+  const db = await getDb();
   const allReports = await db.select().from(earningsReports);
 
   const beatCount = allReports.filter((r) => r.beatStatus === "Beat").length;

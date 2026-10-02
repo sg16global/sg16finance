@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { supportTickets } from "@/db/schema";
 import { desc } from "drizzle-orm";
 import { ensureDataSeeded } from "@/db/ensure-data";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await ensureDataSeeded();
+    const db = await getDb();
     const tickets = await db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt)).limit(20);
     return NextResponse.json({ success: true, tickets });
   } catch (error) {
@@ -20,6 +21,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     await ensureDataSeeded();
+    const db = await getDb();
     const body = await request.json();
     const { name, email, tier = "VIP Pro", subject, category = "Market Inquiry", message } = body;
 

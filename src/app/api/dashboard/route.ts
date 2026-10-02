@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { marketAssets, sectors, earningsReports, marketAlerts } from "@/db/schema";
 import { ensureDataSeeded } from "@/db/ensure-data";
 
@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await ensureDataSeeded();
+    const db = await getDb();
 
     const [assetsList, sectorsList, earningsList, alertsList] = await Promise.all([
       db.select().from(marketAssets),

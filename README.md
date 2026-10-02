@@ -5,81 +5,74 @@ Institutional-grade market intelligence — global indices, GICS sectors, earnin
 **Production:** [sg16finance.com](https://sg16finance.com)  
 **Operator:** Saif Tech Global LLC
 
-Stack: **Next.js 16** (App Router), **Drizzle ORM**, **PostgreSQL**, deployed to **Cloudflare Workers** via [vinext](https://github.com/cloudflare/vinext).
+Stack: **Next.js 16**, **Cloudflare Workers** (vinext), **Cloudflare D1** (SQLite), **Drizzle ORM**.
+
+No external Postgres (Neon/Supabase) required — data lives in **D1** on Cloudflare.
 
 ## Local development
 
 ```bash
 npm install
-cp .env.example .env.local
-# Start PostgreSQL and create database `sg16finance`
-npx drizzle-kit push
-npx tsx src/db/run-seed.ts
+mkdir -p .data
+npm run db:push
+npm run db:seed
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Optional: set `LOCAL_DATABASE_URL=file:.data/sg16finance.db` in `.env.local` (default).
+
+For Workers-parity dev: `npm run dev:vinext`.
+
+## Database (D1)
+
+| Environment | Storage |
+|-------------|---------|
+| **Production** | Cloudflare D1 binding `DB` (`database_name: sg16finance`) |
+| **Local `next dev`** | SQLite file `.data/sg16finance.db` |
+
+### Fresh / clean data
+
+```bash
+# Local
+rm -f .data/sg16finance.db
+npm run db:push
+npm run db:seed
+```
+
+Production (after deploy, from your machine with Cloudflare CLI):
+
+```bash
+cf d1 migrations apply sg16finance --remote
+npm run db:seed
+```
+
+Or push schema via Drizzle against remote D1 using Cloudflare credentials (see [D1 + Drizzle](https://orm.drizzle.team/docs/get-started/d1-new)).
+
+The app also auto-seeds on first request when tables are empty.
+
+## Deploy to Cloudflare
+
+Worker name: **sg16finance** (`cloudflare.config.ts` includes D1 binding `DB`).
+
+```bash
+cf auth login
+npm run build:vinext
+npm run deploy:vinext
+```
+
+Attach **sg16finance.com** / **www** as custom domains on the Worker. Disconnect legacy **Pages** `dist` deploy if still active.
+
+### GitHub Actions
+
+Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` — pushes to `main` run `.github/workflows/deploy.yml`.
 
 ## Scripts
 
 | Command | Purpose |
 |--------|---------|
-| `npm run dev` | Next.js dev server |
-| `npm run dev:vinext` | vinext dev (Workers-like) |
-| `npm run build` | Next.js production build |
-| `npm run build:vinext` | Build for Cloudflare Workers |
-| `npm run deploy:vinext` | Deploy Worker to Cloudflare |
-| `npm run lint` | ESLint |
-| `npm run typecheck` | TypeScript |
-
-## Database (fresh / clean data)
-
-To wipe and re-seed locally:
-
-```bash
-# Drop and recreate public schema in your Postgres DB, then:
-npx drizzle-kit push
-npx tsx src/db/run-seed.ts
-```
-
-The app auto-seeds on first request if tables are empty (`ensureDataSeeded`).
-
-## Deploy to Cloudflare (sg16finance.com)
-
-### 1. PostgreSQL in production
-
-Use [Neon](https://neon.tech) or [Supabase](https://supabase.com) (free tier is fine). Create a database and note the connection string.
-
-Optional but recommended: [Hyperdrive](https://developers.cloudflare.com/hyperdrive/) in the Cloudflare dashboard, pointed at that database. Use the Hyperdrive connection string as `DATABASE_URL`.
-
-### 2. Worker secrets
-
-In Cloudflare → Workers → **sg16finance** → Settings → Variables:
-
-- **`DATABASE_URL`** (secret): Postgres or Hyperdrive connection string
-
-After first deploy, run schema + seed against production once (from your machine with production `DATABASE_URL`):
-
-```bash
-npx drizzle-kit push
-npx tsx src/db/run-seed.ts
-```
-
-### 3. Custom domain
-
-After `npm run deploy:vinext`, attach **sg16finance.com** and **www.sg16finance.com** to the Worker in the Cloudflare dashboard (Workers & Pages → sg16finance → Custom domains).
-
-DNS for the zone should stay on Cloudflare; remove any legacy Netlify/Pages origins for the apex.
-
-### 4. GitHub Actions (optional)
-
-Add repository secrets:
-
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
-
-Pushes to `main` run `.github/workflows/deploy.yml` (build + `deploy:vinext`).
-
-## Routes
-
-`/`, `/markets`, `/sectors`, `/sectors/:slug`, `/earnings`, `/earnings/:symbol`, `/watchlist`, `/ai-copilot`, `/premium`, `/about`, `/contact`, `/disclaimer`, `/privacy`
+| `npm run dev` | Next.js dev (local SQLite) |
+| `npm run dev:vinext` | vinext dev with D1 simulation |
+| `npm run build:vinext` | Build for Workers |
+| `npm run deploy:vinext` | Deploy to Cloudflare |
+| `npm run db:push` | Apply schema (local file) |
+| `npm run db:seed` | Load institutional seed data |

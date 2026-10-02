@@ -1,101 +1,115 @@
-import { pgTable, text, timestamp, serial, numeric, boolean, jsonb } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
-export const marketAssets = pgTable("market_assets", {
-  id: serial("id").primaryKey(),
+export const marketAssets = sqliteTable("market_assets", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   symbol: text("symbol").notNull().unique(),
   name: text("name").notNull(),
-  category: text("category").notNull(), // 'equities' | 'tech-ai' | 'macro-commodities' | 'crypto' | 'forex' | 'bonds'
-  price: numeric("price", { precision: 14, scale: 4 }).notNull(),
-  change: numeric("change", { precision: 14, scale: 4 }).notNull(),
-  changePercent: numeric("change_percent", { precision: 8, scale: 4 }).notNull(),
-  high24h: numeric("high_24h", { precision: 14, scale: 4 }),
-  low24h: numeric("low_24h", { precision: 14, scale: 4 }),
+  category: text("category").notNull(),
+  price: text("price").notNull(),
+  change: text("change").notNull(),
+  changePercent: text("change_percent").notNull(),
+  high24h: text("high_24h"),
+  low24h: text("low_24h"),
   volume: text("volume"),
   marketCap: text("market_cap"),
-  peRatio: numeric("pe_ratio", { precision: 8, scale: 2 }),
-  dividendYield: numeric("dividend_yield", { precision: 6, scale: 2 }),
-  sparkline: jsonb("sparkline").$type<number[]>(),
-  aiSentiment: text("ai_sentiment"), // 'Bullish' | 'Neutral' | 'Bearish' | 'Extreme Greed' | 'Oversold'
+  peRatio: text("pe_ratio"),
+  dividendYield: text("dividend_yield"),
+  sparkline: text("sparkline", { mode: "json" }).$type<number[]>(),
+  aiSentiment: text("ai_sentiment"),
   aiSummary: text("ai_summary"),
   exchange: text("exchange"),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
-export const sectors = pgTable("sectors", {
-  id: serial("id").primaryKey(),
+export const sectors = sqliteTable("sectors", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
   icon: text("icon").notNull(),
   description: text("description").notNull(),
-  marketWeightPercent: numeric("market_weight_percent", { precision: 5, scale: 2 }).notNull(),
-  change1D: numeric("change_1d", { precision: 6, scale: 2 }).notNull(),
-  change1M: numeric("change_1m", { precision: 6, scale: 2 }).notNull(),
-  change1Y: numeric("change_1y", { precision: 6, scale: 2 }).notNull(),
-  peRatio: numeric("pe_ratio", { precision: 6, scale: 2 }).notNull(),
-  dividendYield: numeric("dividend_yield", { precision: 5, scale: 2 }).notNull(),
-  topHoldings: jsonb("top_holdings").$type<{ symbol: string; name: string; weight: string; price: number; change: number }[]>(),
-  macroCatalysts: jsonb("macro_catalysts").$type<string[]>(),
+  marketWeightPercent: text("market_weight_percent").notNull(),
+  change1D: text("change_1d").notNull(),
+  change1M: text("change_1m").notNull(),
+  change1Y: text("change_1y").notNull(),
+  peRatio: text("pe_ratio").notNull(),
+  dividendYield: text("dividend_yield").notNull(),
+  topHoldings: text("top_holdings", { mode: "json" }).$type<
+    { symbol: string; name: string; weight: string; price: number; change: number }[]
+  >(),
+  macroCatalysts: text("macro_catalysts", { mode: "json" }).$type<string[]>(),
   aiOutlook: text("ai_outlook").notNull(),
-  aiRating: text("ai_rating").notNull(), // 'Overweight' | 'Equal Weight' | 'Underweight'
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  aiRating: text("ai_rating").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
-export const earningsReports = pgTable("earnings_reports", {
-  id: serial("id").primaryKey(),
+export const earningsReports = sqliteTable("earnings_reports", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   symbol: text("symbol").notNull(),
   companyName: text("company_name").notNull(),
   sector: text("sector").notNull(),
   reportDate: text("report_date").notNull(),
-  fiscalPeriod: text("fiscal_period").notNull(), // e.g. "Q4 2024" or "Q1 2025"
-  epsEstimate: numeric("eps_estimate", { precision: 8, scale: 2 }).notNull(),
-  epsActual: numeric("eps_actual", { precision: 8, scale: 2 }),
+  fiscalPeriod: text("fiscal_period").notNull(),
+  epsEstimate: text("eps_estimate").notNull(),
+  epsActual: text("eps_actual"),
   revenueEstimate: text("revenue_estimate").notNull(),
   revenueActual: text("revenue_actual"),
-  beatStatus: text("beat_status").notNull(), // 'Beat' | 'Miss' | 'Inline' | 'Upcoming'
-  surprisePercent: numeric("surprise_percent", { precision: 6, scale: 2 }),
+  beatStatus: text("beat_status").notNull(),
+  surprisePercent: text("surprise_percent"),
   plainEnglishSummary: text("plain_english_summary").notNull(),
   marketReactionReason: text("market_reaction_reason").notNull(),
-  guidanceSentiment: text("guidance_sentiment").notNull(), // 'Bullish' | 'Cautious' | 'Neutral' | 'Strong Expansion'
-  catalysts: jsonb("catalysts").$type<string[]>(),
-  keyTakeaways: jsonb("key_takeaways").$type<string[]>(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  guidanceSentiment: text("guidance_sentiment").notNull(),
+  catalysts: text("catalysts", { mode: "json" }).$type<string[]>(),
+  keyTakeaways: text("key_takeaways", { mode: "json" }).$type<string[]>(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
-export const supportTickets = pgTable("support_tickets", {
-  id: serial("id").primaryKey(),
+export const supportTickets = sqliteTable("support_tickets", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   email: text("email").notNull(),
-  tier: text("tier").default("VIP Pro").notNull(), // 'Free' | 'VIP Pro' | 'Institutional' | 'Sovereign'
+  tier: text("tier").default("VIP Pro").notNull(),
   subject: text("subject").notNull(),
-  category: text("category").notNull(), // 'Terminal & Data' | 'API Access' | 'Portfolio Model' | 'Billing' | 'Market Inquiry'
+  category: text("category").notNull(),
   message: text("message").notNull(),
-  status: text("status").default("AI Resolved").notNull(), // 'AI Resolved' | 'Investigating' | 'Closed'
+  status: text("status").default("AI Resolved").notNull(),
   priority: text("priority").default("High").notNull(),
   aiResponse: text("ai_response"),
-  aiConfidence: numeric("ai_confidence", { precision: 5, scale: 2 }).default("98.5"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  aiConfidence: text("ai_confidence").default("98.5"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
-export const userWatchlist = pgTable("user_watchlist", {
-  id: serial("id").primaryKey(),
+export const userWatchlist = sqliteTable("user_watchlist", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   userId: text("user_id").default("guest_institutional_user").notNull(),
   symbol: text("symbol").notNull(),
   name: text("name").notNull(),
-  priceAtAdd: numeric("price_at_add", { precision: 14, scale: 4 }).notNull(),
-  targetPrice: numeric("target_price", { precision: 14, scale: 4 }),
+  priceAtAdd: text("price_at_add").notNull(),
+  targetPrice: text("target_price"),
   notes: text("notes"),
-  alertCondition: text("alert_condition"), // 'above' | 'below' | 'change_3pct'
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  alertCondition: text("alert_condition"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
-export const marketAlerts = pgTable("market_alerts", {
-  id: serial("id").primaryKey(),
+export const marketAlerts = sqliteTable("market_alerts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   title: text("title").notNull(),
   symbol: text("symbol"),
-  severity: text("severity").notNull(), // 'urgent' | 'high' | 'info'
-  category: text("category").notNull(), // 'Central Bank' | 'Earnings' | 'Volatility' | 'Breakout'
+  severity: text("severity").notNull(),
+  category: text("category").notNull(),
   message: text("message").notNull(),
   timestampStr: text("timestamp_str").notNull(),
-  read: boolean("read").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  read: integer("read", { mode: "boolean" }).default(false).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });

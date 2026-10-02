@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { marketAssets } from "@/db/schema";
 import { ensureDataSeeded } from "@/db/ensure-data";
 
@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await ensureDataSeeded();
+    const db = await getDb();
     const assets = await db.select().from(marketAssets);
 
     // Provide quotes with micro-tick variance for realistic 24/7 institutional live feed simulation

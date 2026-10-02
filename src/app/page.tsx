@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { marketAssets, sectors, earningsReports, marketAlerts } from "@/db/schema";
 import { ensureDataSeeded } from "@/db/ensure-data";
 import Link from "next/link";
@@ -27,6 +27,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   await ensureDataSeeded();
+  const db = await getDb();
 
   const [assetsList, sectorsList, earningsList, alertsList] = await Promise.all([
     db.select().from(marketAssets),

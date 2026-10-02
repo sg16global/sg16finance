@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { sectors } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
@@ -22,6 +22,7 @@ interface SectorDetailPageProps {
 
 export default async function SectorDetailPage({ params }: SectorDetailPageProps) {
   const { slug } = await params;
+  const db = await getDb();
   const sectorList = await db.select().from(sectors).where(eq(sectors.slug, slug)).limit(1);
 
   if (!sectorList || sectorList.length === 0) {

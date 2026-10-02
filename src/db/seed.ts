@@ -1,7 +1,8 @@
-import { db } from "./index";
+import { getDb } from "./index";
 import { marketAssets, sectors, earningsReports, supportTickets, userWatchlist, marketAlerts } from "./schema";
 
 export async function seedDatabase() {
+  const db = await getDb();
   // Check if assets already exist
   const existingAssets = await db.select().from(marketAssets).limit(1);
   if (existingAssets.length > 0) {
