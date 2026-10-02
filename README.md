@@ -1,46 +1,85 @@
 # SG16 Finance
 
-International stock intelligence — sector overviews, earnings breakdowns, and plain-English market context.
+Institutional-grade market intelligence — global indices, GICS sectors, earnings breakdowns, watchlist, and 24/7 AI Sentinel.
 
-**Domain:** [sg16finance.com](https://sg16finance.com)  
-**Operator:** [Saif Tech Global LLC](https://saiftechglobal.com)
+**Production:** [sg16finance.com](https://sg16finance.com)  
+**Operator:** Saif Tech Global LLC
 
-## Develop
+Stack: **Next.js 16** (App Router), **Drizzle ORM**, **PostgreSQL**, deployed to **Cloudflare Workers** via [vinext](https://github.com/cloudflare/vinext).
+
+## Local development
 
 ```bash
 npm install
+cp .env.example .env.local
+# Start PostgreSQL and create database `sg16finance`
+npx drizzle-kit push
+npx tsx src/db/run-seed.ts
 npm run dev
 ```
 
-## Build
+Open [http://localhost:3000](http://localhost:3000).
+
+## Scripts
+
+| Command | Purpose |
+|--------|---------|
+| `npm run dev` | Next.js dev server |
+| `npm run dev:vinext` | vinext dev (Workers-like) |
+| `npm run build` | Next.js production build |
+| `npm run build:vinext` | Build for Cloudflare Workers |
+| `npm run deploy:vinext` | Deploy Worker to Cloudflare |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript |
+
+## Database (fresh / clean data)
+
+To wipe and re-seed locally:
 
 ```bash
-npm run build
+# Drop and recreate public schema in your Postgres DB, then:
+npx drizzle-kit push
+npx tsx src/db/run-seed.ts
 ```
 
-Output: `dist/`
+The app auto-seeds on first request if tables are empty (`ensureDataSeeded`).
 
-## Deploy (Cloudflare Pages)
+## Deploy to Cloudflare (sg16finance.com)
 
-**Netlify is not used.** `sg16finance.com` DNS is on Cloudflare; connect Pages and add the custom domain to replace any old Netlify origin.
+### 1. PostgreSQL in production
 
-### One-time setup (Cloudflare dashboard)
+Use [Neon](https://neon.tech) or [Supabase](https://supabase.com) (free tier is fine). Create a database and note the connection string.
 
-1. [Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages) → **Create** → **Pages** → **Connect to Git**
-2. Repo: `sg16global/sg16finance`, branch `main`
-3. Build command: `npm run build` · Output directory: `dist`
-4. **Custom domains** → add `sg16finance.com` and `www.sg16finance.com`  
-   Cloudflare updates DNS automatically — this removes Netlify from the path.
-5. Optional env: `FINNHUB_API_KEY` for live quotes at `/api/quotes`
+Optional but recommended: [Hyperdrive](https://developers.cloudflare.com/hyperdrive/) in the Cloudflare dashboard, pointed at that database. Use the Hyperdrive connection string as `DATABASE_URL`.
 
-### CI deploy (alternative)
+### 2. Worker secrets
 
-Add GitHub repo secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Pushes to `main` run `.github/workflows/deploy.yml`.
+In Cloudflare → Workers → **sg16finance** → Settings → Variables:
 
-- Build command: `npm run build`
-- Output directory: `dist`
-- Project name: `sg16finance`
+- **`DATABASE_URL`** (secret): Postgres or Hyperdrive connection string
+
+After first deploy, run schema + seed against production once (from your machine with production `DATABASE_URL`):
+
+```bash
+npx drizzle-kit push
+npx tsx src/db/run-seed.ts
+```
+
+### 3. Custom domain
+
+After `npm run deploy:vinext`, attach **sg16finance.com** and **www.sg16finance.com** to the Worker in the Cloudflare dashboard (Workers & Pages → sg16finance → Custom domains).
+
+DNS for the zone should stay on Cloudflare; remove any legacy Netlify/Pages origins for the apex.
+
+### 4. GitHub Actions (optional)
+
+Add repository secrets:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+
+Pushes to `main` run `.github/workflows/deploy.yml` (build + `deploy:vinext`).
 
 ## Routes
 
-`/`, `/markets`, `/sectors`, `/sectors/:slug`, `/earnings`, `/earnings/:symbol`, `/about`, `/disclaimer`, `/privacy`, `/contact`, `/premium`
+`/`, `/markets`, `/sectors`, `/sectors/:slug`, `/earnings`, `/earnings/:symbol`, `/watchlist`, `/ai-copilot`, `/premium`, `/about`, `/contact`, `/disclaimer`, `/privacy`
