@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import {
   Crown,
   Check,
@@ -12,13 +12,39 @@ import {
   Copy,
   CheckCircle2,
   Lock,
+  Clock,
 } from "lucide-react";
 
 export default function PremiumPage() {
   const [selectedTier, setSelectedTier] = useState<string>("vip");
   const [apiKey, setApiKey] = useState<string>("sg16_live_98ab710ef2a94481c002e1");
   const [copiedKey, setCopiedKey] = useState(false);
-  const [activatedSuccess, setActivatedSuccess] = useState<string | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [typedEmail, setTypedEmail] = useState<string | null>(null);
+  const noopSubscribe = () => () => {};
+  const paidPlan = useSyncExternalStore(
+    noopSubscribe,
+    () => new URLSearchParams(window.location.search).get("paid"),
+    () => null
+  );
+  const savedEmail = useSyncExternalStore(
+    noopSubscribe,
+    () => {
+      try {
+        return localStorage.getItem("sg16_email") ?? "";
+      } catch {
+        return "";
+      }
+    },
+    () => ""
+  );
+  const email = typedEmail ?? savedEmail;
+  const activatedSuccess =
+    paidPlan && !bannerDismissed
+      ? "Payment received. Your pass activates within a minute of confirmation, linked to the email you entered."
+      : null;
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const tiers = [
     {
@@ -72,6 +98,30 @@ export default function PremiumPage() {
     },
   ];
 
+  const passes = [
+    {
+      id: "day5",
+      name: "5-Hour Day Pass",
+      price: "$1",
+      period: "pass",
+      description: "5 hours of usage per day.",
+    },
+    {
+      id: "day12",
+      name: "12-Hour Day Pass",
+      price: "$3",
+      period: "pass",
+      description: "12 hours of usage per day.",
+    },
+    {
+      id: "week",
+      name: "1-Week Full Pass",
+      price: "$6",
+      period: "week",
+      description: "Full access for 1 week.",
+    },
+  ];
+
   const handleGenerateKey = () => {
     const chars = "0123456789abcdef";
     let randomHex = "";
@@ -87,10 +137,30 @@ export default function PremiumPage() {
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
-  const handleActivate = (tierName: string) => {
-    setActivatedSuccess(
-      `Your account has been granted ${tierName} credentials. Instant access has been provisioned across all SG16 Finance terminal endpoints.`
-    );
+  const handleActivate = async (planKey: string) => {
+    if (planKey === "free") return;
+    setCheckoutError(null);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setCheckoutError("Enter a valid email first. Your pass is linked to it.");
+      return;
+    }
+    setLoadingPlan(planKey);
+    try {
+      localStorage.setItem("sg16_email", email.trim());
+    } catch {}
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: planKey, email: email.trim() }),
+      });
+      const data = (await res.json()) as { checkoutUrl?: string; error?: string };
+      if (!res.ok || !data.checkoutUrl) throw new Error(data.error ?? "Checkout failed");
+      window.location.assign(data.checkoutUrl);
+    } catch (err) {
+      setCheckoutError(err instanceof Error ? err.message : "Could not start checkout");
+      setLoadingPlan(null);
+    }
   };
 
   return (
@@ -119,13 +189,29 @@ export default function PremiumPage() {
               <p className="font-semibold text-white">{activatedSuccess}</p>
             </div>
             <button
-              onClick={() => setActivatedSuccess(null)}
+              onClick={() => setBannerDismissed(true)}
               className="text-white hover:underline text-xs shrink-0"
             >
               Dismiss
             </button>
           </div>
         )}
+
+        {/* Checkout email */}
+        <div className="max-w-xl mx-auto space-y-2">
+          <label htmlFor="checkout-email" className="block text-[10px] font-mono-data uppercase tracking-wider text-[#FF9A3C] font-bold">
+            Your email (your pass is linked to it)
+          </label>
+          <input
+            id="checkout-email"
+            type="email"
+            value={email}
+            onChange={(e) => setTypedEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-[#7D8594] focus:border-[#C76A16]/60 focus:outline-none"
+          />
+          {checkoutError && <p className="text-xs text-[#FF6B6B]">{checkoutError}</p>}
+        </div>
 
         {/* Tiers Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -171,18 +257,61 @@ export default function PremiumPage() {
 
               <div className="p-6 pt-0">
                 <button
-                  onClick={() => handleActivate(tier.name)}
-                  className={`w-full py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  onClick={() => handleActivate(tier.id)}
+                  disabled={loadingPlan !== null}
+                  className={`w-full py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 ${
                     tier.highlighted
                       ? "bg-gradient-to-r from-[#D97B22] to-[#C76A16] text-white shadow-lg hover:shadow-[0_0_25px_rgba(199,106,22,0.5)]"
                       : "bg-white/[0.05] text-[#B6BDC8] hover:bg-white/10 hover:text-white border border-white/10"
                   }`}
                 >
-                  {tier.buttonLabel}
+                  {loadingPlan === tier.id ? "Redirecting to checkout..." : tier.buttonLabel}
                 </button>
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Flexible Retail Access Passes */}
+        <div id="passes" className="space-y-5">
+          <div className="text-center max-w-3xl mx-auto space-y-2">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[#C76A16]/40 bg-[#C76A16]/15 px-3 py-1 text-xs font-mono-data text-[#FF9A3C]">
+              <Clock className="w-3.5 h-3.5 text-[#FF9A3C]" />
+              <span>PAY-AS-YOU-GO</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Flexible Retail Access Passes
+            </h2>
+            <p className="text-sm text-[#B6BDC8] leading-relaxed">
+              No subscription needed. Pick a short pass that fits how long you want to use the terminal.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {passes.map((pass) => (
+              <div key={pass.id} className="glass-shield overflow-hidden flex flex-col justify-between">
+                <div className="glass-shield-inner p-6 sm:p-8 space-y-4">
+                  <h3 className="text-lg font-bold text-white tracking-tight">{pass.name}</h3>
+                  <div className="font-mono-data">
+                    <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+                      {pass.price}
+                    </span>
+                    <span className="text-xs text-[#7D8594] ml-2">/ {pass.period}</span>
+                  </div>
+                  <p className="text-xs text-[#B6BDC8] leading-relaxed">{pass.description}</p>
+                </div>
+                <div className="p-6 pt-0">
+                  <button
+                    onClick={() => handleActivate(pass.id)}
+                    disabled={loadingPlan !== null}
+                    className="w-full py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 bg-white/[0.05] text-[#B6BDC8] hover:bg-white/10 hover:text-white border border-white/10"
+                  >
+                    {loadingPlan === pass.id ? "Redirecting to checkout..." : `Get ${pass.name}`}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Section: Sub-5ms API Access Keys for Institutional Clients */}

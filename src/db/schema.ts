@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
 
 export const marketAssets = sqliteTable("market_assets", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -113,3 +113,37 @@ export const marketAlerts = sqliteTable("market_alerts", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+/** Paid access passes granted by Dodo Payments webhooks. */
+export const accessPasses = sqliteTable("access_passes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull(),
+  plan: text("plan").notNull(),
+  status: text("status").default("active").notNull(),
+  sourceId: text("source_id"),
+  startsAt: integer("starts_at", { mode: "timestamp_ms" }).notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+/** Processed Dodo webhook ids, for idempotency. */
+export const dodoEvents = sqliteTable("dodo_events", {
+  webhookId: text("webhook_id").primaryKey(),
+  type: text("type").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+/** Seconds used per email per UTC day (for the 5h / 12h day passes). */
+export const passUsage = sqliteTable(
+  "pass_usage",
+  {
+    email: text("email").notNull(),
+    day: text("day").notNull(),
+    seconds: integer("seconds").default(0).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.email, t.day] })]
+);

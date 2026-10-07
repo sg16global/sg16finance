@@ -6,6 +6,7 @@ import LiveTickerBar from "./LiveTickerBar";
 import Footer from "./Footer";
 import AiCopilotModal from "./AiCopilotModal";
 import SearchModal from "./SearchModal";
+import AutoSidePanel from "./AutoSidePanel";
 import { Bot, MessageSquare } from "lucide-react";
 
 export default function DashboardShell({ children }: { children: ReactNode }) {
@@ -38,6 +39,9 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
 
       {/* Global Institutional Footer */}
       <Footer />
+
+      {/* Auto-hide / auto-open side panel with Back & Forward */}
+      <AutoSidePanel />
 
       {/* Persistent Floating 24/7 AI Sentinel Launcher Button */}
       <div className="fixed bottom-5 right-5 z-40">
