@@ -16,20 +16,25 @@
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
+    "@vinext/cloudflare": "1.0.1",
     "drizzle-orm": "0.45.2",
     "lucide-react": "^1.49.0",
     "next": "16.2.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "vinext": "1.0.1",
     "react-server-dom-webpack": "19.3.0",
-    "@vinext/cloudflare": "1.0.1"
+    "vinext": "1.0.1"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "beta",
+    "@cloudflare/workers-types": "^5.20261008.1",
     "@tailwindcss/postcss": "4.1.17",
     "@types/node": "22.19.15",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "latest",
+    "@vitejs/plugin-rsc": "latest",
+    "cf": "latest",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
@@ -37,11 +42,7 @@
     "tailwindcss": "4.1.17",
     "tsx": "^4.20.5",
     "typescript": "5.9.3",
-    "vite": "8.3.0",
-    "@vitejs/plugin-react": "latest",
-    "@vitejs/plugin-rsc": "latest",
-    "@cloudflare/vite-plugin": "beta",
-    "cf": "latest"
+    "vite": "8.3.0"
   },
   "type": "module"
 }

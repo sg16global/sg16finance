@@ -1,6 +1,7 @@
 import { drizzle, type DrizzleD1Database } from "drizzle-orm/d1";
 import { drizzle as drizzleLibsql } from "drizzle-orm/libsql";
 import { createClient, type Client } from "@libsql/client";
+import type { D1Database } from "@cloudflare/workers-types";
 import * as schema from "./schema";
 
 export type Sg16Database = DrizzleD1Database<typeof schema>;
