@@ -12,13 +12,13 @@ export default defineConfig({
     assets: { notFoundHandling: "none" },
     env: {
       ASSETS: bindings.assets(),
-      // Local-dev secret declarations (values come from .dev.vars; production uses `wrangler secret put`)
+      // Required production secrets (set on the Worker with `wrangler secret put`).
+      // Optional AI keys (ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL) must NOT be declared here:
+      // declared secrets are required at deploy time and the copilot falls back to Workers AI.
+      // AUTH_DEV_LOG_CODE is local-dev only (.dev.vars) and must never exist in production.
       SESSION_SECRET: bindings.secret(),
       TURNSTILE_SITE_KEY: bindings.secret(),
       TURNSTILE_SECRET: bindings.secret(),
-      AUTH_DEV_LOG_CODE: bindings.secret(),
-      ANTHROPIC_API_KEY: bindings.secret(),
-      ANTHROPIC_BASE_URL: bindings.secret(),
       // Abuse shield: per-IP limits (see src/lib/security.ts)
       RL_ACCESS: bindings.rateLimit({ namespace: "1001", simple: { limit: 60, period: 60 } }),
       RL_CHECKOUT: bindings.rateLimit({ namespace: "1002", simple: { limit: 5, period: 60 } }),
