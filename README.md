@@ -62,9 +62,15 @@ npm run deploy:vinext
 
 Attach **sg16finance.com** / **www** as custom domains on the Worker. Disconnect legacy **Pages** `dist` deploy if still active.
 
-### GitHub Actions
+**Note:** `npm run deploy:vinext` may show a "configuration differs from the Dashboard" prompt before uploading — select **Yes** to continue. The Worker's D1 / AI / rate-limit bindings and both custom domains are defined in `cloudflare.config.ts` and are re-applied on every deploy.
 
-Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` — pushes to `main` run `.github/workflows/deploy.yml`.
+### CI auto-deploy
+
+Currently **disabled** (the Cloudflare API secrets were removed). Deploy manually from the machine
+that is logged in to Cloudflare (`npm run build:vinext` then `npm run deploy:vinext`). To re-enable
+auto-deploy on every push to `main`, either add `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`
+as GitHub Actions secrets together with a deploy workflow, or connect the repo under
+Workers → Settings → Build in the Cloudflare Dashboard.
 
 ## Scripts
 

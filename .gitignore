@@ -32,3 +32,6 @@ Thumbs.db
 
 # wrangler local state
 .wrangler/
+
+# relocated build output for wrangler deploys
+cfbuild/
