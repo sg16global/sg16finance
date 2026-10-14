@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { accessPasses, dodoEvents } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { getEnv } from "@/lib/env";
 import {
   PLANS,
@@ -155,6 +155,41 @@ export async function POST(request: Request) {
         await db
           .update(accessPasses)
           .set({ status: "cancelled" })
+          .where(and(eq(accessPasses.email, email), eq(accessPasses.plan, plan.key)));
+      } else if (type === "payment.refunded" || type === "refund.created") {
+        // Refund: end the paid access immediately. Match the original payment first, then email+plan.
+        const paymentId = String(data.payment_id ?? "");
+        const refunded = paymentId
+          ? await db.select().from(accessPasses).where(eq(accessPasses.sourceId, paymentId)).limit(1)
+          : [];
+        if (refunded.length) {
+          await db
+            .update(accessPasses)
+            .set({ status: "refunded", expiresAt: new Date(now) })
+            .where(eq(accessPasses.id, refunded[0].id));
+        } else {
+          await db
+            .update(accessPasses)
+            .set({ status: "refunded", expiresAt: new Date(now) })
+            .where(
+              and(
+                eq(accessPasses.email, email),
+                eq(accessPasses.plan, plan.key),
+                gt(accessPasses.expiresAt, new Date(now)),
+              ),
+            );
+        }
+      } else if (type === "subscription.expired" && plan.kind === "subscription") {
+        // The subscription ended: access stops now.
+        await db
+          .update(accessPasses)
+          .set({ status: "expired", expiresAt: new Date(now) })
+          .where(and(eq(accessPasses.email, email), eq(accessPasses.plan, plan.key)));
+      } else if (type === "subscription.payment_failed" && plan.kind === "subscription") {
+        // Renewal charge failed: access stays until the already-paid period ends (expiresAt).
+        await db
+          .update(accessPasses)
+          .set({ status: "past_due" })
           .where(and(eq(accessPasses.email, email), eq(accessPasses.plan, plan.key)));
       }
     } else {
