@@ -186,6 +186,43 @@ const WORKERS_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
 type AiBinding = { run(model: string, input: unknown): Promise<unknown> };
 
+
+const MISTRAL_DEFAULT_MODEL = "mistral-large-latest";
+
+/** Mistral AI (api.mistral.ai). Activates automatically when MISTRAL_API_KEY is set on the Worker. */
+async function askMistral(query: string, history: ChatTurn[]): Promise<CopilotResult> {
+  const apiKey = await getEnv("MISTRAL_API_KEY");
+  if (!apiKey) return { ok: false, reason: "unavailable" };
+
+  const { text: context, asOf } = await buildContext();
+  const model = (await getEnv("MISTRAL_MODEL")) ?? MISTRAL_DEFAULT_MODEL;
+  const messages: Array<{ role: string; content: string }> = [
+    { role: "system", content: `${SYSTEM_PROMPT}\n\n${context}` },
+    ...history,
+    { role: "user", content: query },
+  ];
+
+  try {
+    const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model, messages, max_tokens: 800 }),
+      signal: AbortSignal.timeout(45_000),
+    });
+    if (!res.ok) {
+      console.error("Mistral error:", res.status, (await res.text().catch(() => "")).slice(0, 300));
+      return { ok: false, reason: "upstream" };
+    }
+    const data = (await res.json()) as { model?: string; choices?: Array<{ message?: { content?: string } }> };
+    const answer = (data.choices?.[0]?.message?.content ?? "").trim();
+    if (!answer) return { ok: false, reason: "upstream" };
+    return { ok: true, text: answer, model: data.model ?? model, asOf };
+  } catch (error) {
+    console.error("Mistral request failed:", error);
+    return { ok: false, reason: "upstream" };
+  }
+}
+
 /** Cloudflare Workers AI: runs on the account's own Workers plan, no extra API key. */
 async function askWorkersAi(query: string, history: ChatTurn[]): Promise<CopilotResult> {
   let ai: AiBinding | undefined;
@@ -214,18 +251,28 @@ async function askWorkersAi(query: string, history: ChatTurn[]): Promise<Copilot
 }
 
 /**
- * Engine order. Default: Cloudflare Workers AI (fast, no extra key; Claude first if ANTHROPIC_API_KEY is set).
- * AI_PROVIDER = "sg16" | "anthropic" | "workers" puts that engine first. Cloudflare AI is always the final backup,
+ * Engine order. Default: Cloudflare Workers AI (fast, no extra key). Mistral first if MISTRAL_API_KEY is set,
+ * Claude first if ANTHROPIC_API_KEY is set. AI_PROVIDER = "sg16" | "anthropic" | "mistral" | "workers"
+ * puts that engine first. Cloudflare AI is always the final backup,
  * so a slow or failing engine never leaves the user without an answer.
  */
 export async function askCopilot(query: string, history: ChatTurn[]): Promise<CopilotResult> {
   const choice = (await getEnv("AI_PROVIDER"))?.toLowerCase();
   const hasClaude = Boolean(await getEnv("ANTHROPIC_API_KEY"));
-  const first = choice === "sg16" || choice === "anthropic" || choice === "workers" ? choice : hasClaude ? "anthropic" : "workers";
+  const hasMistral = Boolean(await getEnv("MISTRAL_API_KEY"));
+  const first =
+    choice === "sg16" || choice === "anthropic" || choice === "mistral" || choice === "workers"
+      ? choice
+      : hasClaude
+        ? "anthropic"
+        : hasMistral
+          ? "mistral"
+          : "workers";
 
   const run: Record<string, () => Promise<CopilotResult>> = {
     sg16: () => askSg16Brain(query, history),
     anthropic: () => askAnthropic(query, history),
+    mistral: () => askMistral(query, history),
     workers: () => askWorkersAi(query, history),
   };
   const order = [...new Set([first, "workers"])];

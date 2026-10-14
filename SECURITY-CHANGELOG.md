@@ -11,6 +11,7 @@ Newest first. Do not remove or bypass the checks below without updating this fil
 - **Repo hygiene:** `.wrangler/` and relocated build output ignored; stale `.next` type artifacts removed (they broke `tsc --noEmit`); `tsc --noEmit`, `eslint .` and `vitest` (22 tests) all clean; README deploy section updated to match reality.
 - **Backups:** full dated copy of the working project kept outside the repo (`BACKUPS/sg16finance-2026-10-15`). No secrets are committed anywhere; `.dev.vars`/`.env.local` stay local-only.
 - **Note for future deploys:** `cf deploy` may show a "local configuration differs from the Dashboard" prompt; the remote Worker config now matches `cloudflare.config.ts` (the 2026-10-14 deploy applied it), so the diff should no longer appear. If it ever does, answer Yes — the config in git is the source of truth.
+- **Mistral engine added (`src/lib/copilot.ts`):** `MISTRAL_API_KEY` (set with `wrangler secret put MISTRAL_API_KEY`, optional model override `MISTRAL_MODEL`, default `mistral-large-latest`) makes Mistral the first copilot engine automatically; `AI_PROVIDER=mistral|anthropic|sg16|workers` still forces any engine. Cloudflare Workers AI remains the guaranteed backup, so the copilot never goes dark. Production today runs on Workers AI until a Mistral key is set.
 
 ## 2026-10-14: per-account watchlist gating, alerts gating, tests, build repair
 
