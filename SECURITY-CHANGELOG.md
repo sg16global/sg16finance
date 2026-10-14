@@ -3,6 +3,15 @@
 Single source of truth for the edge-security framework, so any tool or person editing this repo stays in sync.
 Newest first. Do not remove or bypass the checks below without updating this file.
 
+## 2026-10-15: git connection, Workers Builds auto-deploy, verified deploy
+
+- **Source of truth restored:** the full project (all auth/payment/security/data files, including the 27 files that were missing from the old "3.8 upgrade" archive) now lives in one git repo — `sg16global/sg16finance`, branch `main` — committed on top of the existing history (nothing force-pushed, timeline preserved).
+- **Production deploy verified:** `sg16finance` Worker redeployed; live checks confirm `sg16finance.com`, `www.sg16finance.com` (301 → apex) and the workers.dev host all serve the new version with D1 (`sg16finance-db`), Workers AI and the three rate-limit bindings attached. Custom domains were never disconnected — the deploy updated the Worker in place, zero downtime.
+- **Auto-deploy connected via Cloudflare Workers Builds** (Workers → Settings → Build): production branch `main`, build `npm run build:vinext`, deploy `npm run deploy:vinext`. Every push now deploys automatically; the broken GitHub Actions workflow was removed (no API tokens in GitHub).
+- **Repo hygiene:** `.wrangler/` and relocated build output ignored; stale `.next` type artifacts removed (they broke `tsc --noEmit`); `tsc --noEmit`, `eslint .` and `vitest` (22 tests) all clean; README deploy section updated to match reality.
+- **Backups:** full dated copy of the working project kept outside the repo (`BACKUPS/sg16finance-2026-10-15`). No secrets are committed anywhere; `.dev.vars`/`.env.local` stay local-only.
+- **Note for future deploys:** `cf deploy` may show a "local configuration differs from the Dashboard" prompt; the remote Worker config now matches `cloudflare.config.ts` (the 2026-10-14 deploy applied it), so the diff should no longer appear. If it ever does, answer Yes — the config in git is the source of truth.
+
 ## 2026-10-14: per-account watchlist gating, alerts gating, tests, build repair
 
 - **Build repair:** `next build` failed on 8 TypeScript errors (untyped `request.json()` / `res.json()` in
