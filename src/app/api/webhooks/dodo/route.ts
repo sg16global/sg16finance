@@ -156,7 +156,7 @@ export async function POST(request: Request) {
           .update(accessPasses)
           .set({ status: "cancelled" })
           .where(and(eq(accessPasses.email, email), eq(accessPasses.plan, plan.key)));
-      } else if (type === "payment.refunded" || type === "refund.created") {
+      } else if (type === "refund.succeeded" || type === "payment.refunded" || type === "refund.created") {
         // Refund: end the paid access immediately. Match the original payment first, then email+plan.
         const paymentId = String(data.payment_id ?? "");
         const refunded = paymentId
@@ -191,6 +191,34 @@ export async function POST(request: Request) {
           .update(accessPasses)
           .set({ status: "past_due" })
           .where(and(eq(accessPasses.email, email), eq(accessPasses.plan, plan.key)));
+      } else if (type.startsWith("dispute.")) {
+        // Chargebacks run through the dispute.* lifecycle. opened/challenged/accepted/lost revoke access;
+        // won/cancelled/expired restore it (one-time passes until their original end, subscriptions for the fallback period).
+        const reopen = type === "dispute.won" || type === "dispute.cancelled" || type === "dispute.expired";
+        const paymentId = String(data.payment_id ?? "");
+        const rows = paymentId
+          ? await db.select().from(accessPasses).where(eq(accessPasses.sourceId, paymentId)).limit(1)
+          : [];
+        const pass = rows[0];
+        if (!pass) {
+          console.warn("Dodo webhook: dispute without a matching pass for", type, id);
+        } else if (reopen) {
+          const target =
+            plan.kind === "subscription"
+              ? now + SUBSCRIPTION_FALLBACK_MS
+              : new Date(pass.startsAt).getTime() + (plan.durationMs ?? 0);
+          if (target > now) {
+            await db
+              .update(accessPasses)
+              .set({ status: "active", expiresAt: new Date(target) })
+              .where(eq(accessPasses.id, pass.id));
+          }
+        } else {
+          await db
+            .update(accessPasses)
+            .set({ status: "disputed", expiresAt: new Date(now) })
+            .where(eq(accessPasses.id, pass.id));
+        }
       }
     } else {
       console.warn("Dodo webhook: could not resolve plan/email for", type, id);
