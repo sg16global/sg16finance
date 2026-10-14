@@ -46,13 +46,15 @@ export default function MarketsPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<string>("");
   const [savedSymbols, setSavedSymbols] = useState<Record<string, boolean>>({});
+  const [streaming, setStreaming] = useState(false);
 
   const fetchMarkets = async () => {
     try {
       const res = await fetch("/api/dashboard");
-      const data = await res.json();
+      const data = (await res.json()) as { success?: boolean; assets: Asset[]; streaming?: boolean };
       if (data.success) {
         setAssets(data.assets);
+        setStreaming(Boolean(data.streaming));
         setLastRefreshed(new Date().toLocaleTimeString());
       }
     } catch (err) {
@@ -69,7 +71,7 @@ export default function MarketsPage() {
       if (autoRefresh) {
         void fetchMarkets();
       }
-    }, 5000);
+    }, 30000);
     return () => clearInterval(interval);
   }, [autoRefresh]);
 
@@ -127,7 +129,7 @@ export default function MarketsPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="live-badge text-[9px]">
-                <span className="live-dot" /> STREAMING
+                <span className="live-dot" /> {streaming ? "LATEST PRICES" : "DELAYED 15 MIN"}
               </span>
               <span className="text-[10px] font-mono-data text-[#7D8594]">
                 LAST REFRESH: {lastRefreshed || "SYNCING"}
@@ -137,7 +139,7 @@ export default function MarketsPage() {
               Global Markets Terminal
             </h1>
             <p className="text-xs text-[#7D8594] mt-0.5">
-              Live quotes, cross-asset depth, institutional valuation metrics, and sentiment analysis
+              Real cross-asset quotes with source labels. Free access is delayed 15 minutes; an active pass shows the latest prices.
             </p>
           </div>
 
@@ -147,7 +149,7 @@ export default function MarketsPage() {
               className={`fin-btn-ghost text-xs ${autoRefresh ? "border-[#2ECC71]/40 text-[#2ECC71]" : ""}`}
             >
               <Radio className="w-3.5 h-3.5" />
-              <span>{autoRefresh ? "Live 5s Stream ON" : "Stream Paused"}</span>
+              <span>{autoRefresh ? "Auto-refresh 30s" : "Refresh Paused"}</span>
             </button>
             <button onClick={fetchMarkets} className="fin-btn-ghost text-xs">
               <RefreshCw className="w-3.5 h-3.5" />
@@ -157,28 +159,55 @@ export default function MarketsPage() {
         </div>
 
         {/* Macro Gauge Banner */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-black/40 border border-white/8 font-mono-data text-xs">
-          <div className="border-r border-white/5 pr-3">
-            <p className="text-[10px] text-[#7D8594] uppercase">CBOE Volatility (VIX)</p>
-            <p className="text-base font-bold text-[#2ECC71] mt-0.5">14.20 (-3.07%)</p>
-            <p className="text-[10px] text-[#7D8594]">Complacent Risk Appetite</p>
-          </div>
-          <div className="border-r border-white/5 pr-3">
-            <p className="text-[10px] text-[#7D8594] uppercase">US 10-Yr Benchmark</p>
-            <p className="text-base font-bold text-white mt-0.5">4.382% (-0.024)</p>
-            <p className="text-[10px] text-[#7D8594]">Intermediate Term Floor</p>
-          </div>
-          <div className="border-r border-white/5 pr-3">
-            <p className="text-[10px] text-[#7D8594] uppercase">US 10Y - 2Y Curve Spread</p>
-            <p className="text-base font-bold text-[#2ECC71] mt-0.5">+16.7 bps (Normal)</p>
-            <p className="text-[10px] text-[#7D8594]">Uninverted Slope</p>
-          </div>
-          <div>
-            <p className="text-[10px] text-[#7D8594] uppercase">Gold / Oil Ratio</p>
-            <p className="text-base font-bold text-[#FF9A3C] mt-0.5">36.18 bbl/oz</p>
-            <p className="text-[10px] text-[#7D8594]">Historical High Multiple</p>
-          </div>
-        </div>
+        {(() => {
+          const bySymbol = (s: string) => assets.find((a) => a.symbol === s);
+          const y10 = bySymbol("US10Y");
+          const y2 = bySymbol("US02Y");
+          const spreadBps = y10 && y2 ? (Number(y10.price) - Number(y2.price)) * 100 : null;
+          const up = assets.filter((a) => Number(a.changePercent) > 0).length;
+          const down = assets.filter((a) => Number(a.changePercent) < 0).length;
+          const avg = assets.length ? assets.reduce((s, a) => s + (Number(a.changePercent) || 0), 0) / assets.length : 0;
+          const btc = bySymbol("BTC");
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-black/40 border border-white/8 font-mono-data text-xs">
+              <div className="border-r border-white/5 pr-3">
+                <p className="text-[10px] text-[#7D8594] uppercase">Advancers / Decliners</p>
+                <p className="text-base font-bold text-white mt-0.5">
+                  <span className="text-[#2ECC71]">{up}</span> / <span className="text-[#FF6B6B]">{down}</span>
+                </p>
+                <p className="text-[10px] text-[#7D8594]">Across {assets.length} tracked assets</p>
+              </div>
+              <div className="border-r border-white/5 pr-3">
+                <p className="text-[10px] text-[#7D8594] uppercase">US 10-Yr Treasury</p>
+                <p className="text-base font-bold text-white mt-0.5">
+                  {y10 ? `${Number(y10.price).toFixed(2)}% (${Number(y10.change) >= 0 ? "+" : ""}${Number(y10.change).toFixed(2)})` : "—"}
+                </p>
+                <p className="text-[10px] text-[#7D8594]">US Treasury, daily</p>
+              </div>
+              <div className="border-r border-white/5 pr-3">
+                <p className="text-[10px] text-[#7D8594] uppercase">US 10Y - 2Y Curve Spread</p>
+                <p className={`text-base font-bold mt-0.5 ${spreadBps !== null && spreadBps < 0 ? "text-[#FF6B6B]" : "text-[#2ECC71]"}`}>
+                  {spreadBps !== null ? `${spreadBps >= 0 ? "+" : ""}${spreadBps.toFixed(1)} bps` : "—"}
+                </p>
+                <p className="text-[10px] text-[#7D8594]">
+                  {spreadBps === null ? "Awaiting data" : spreadBps < 0 ? "Inverted curve" : "Normal curve"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-[#7D8594] uppercase">Avg 1D Move</p>
+                <p className={`text-base font-bold mt-0.5 ${avg >= 0 ? "text-[#2ECC71]" : "text-[#FF6B6B]"}`}>
+                  {avg >= 0 ? "+" : ""}
+                  {avg.toFixed(2)}%
+                </p>
+                <p className="text-[10px] text-[#7D8594]">{btc ? `BTC ${Number(btc.changePercent) >= 0 ? "+" : ""}${btc.changePercent}% (24h)` : "Equal-weighted"}</p>
+              </div>
+            </div>
+          );
+        })()}
+        <p className="text-[10px] text-[#7D8594] -mt-3">
+          Sources: Finnhub (stocks and ETF proxies for indices and commodities), CoinGecko (crypto), ECB reference rates (FX, daily),
+          US Treasury (yields, daily). Indices and commodities are shown through ETF proxies, so their levels are ETF prices, not index points.
+        </p>
 
         {/* Filter and Search Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-[#090D14] border border-white/8">

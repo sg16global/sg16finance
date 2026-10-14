@@ -1,5 +1,6 @@
 import { getDb } from "@/db";
-import { marketAssets, sectors, earningsReports, marketAlerts } from "@/db/schema";
+import { sectors, earningsReports, marketAlerts } from "@/db/schema";
+import { loadMarketAssets } from "@/lib/market";
 import { ensureDataSeeded } from "@/db/ensure-data";
 import Link from "next/link";
 import AssetWorkspace from "@/components/AssetWorkspace";
@@ -29,12 +30,20 @@ export default async function HomePage() {
   await ensureDataSeeded();
   const db = await getDb();
 
+  // The server-rendered page shows the 15-minute-delayed view; pass holders get the latest via the live APIs.
   const [assetsList, sectorsList, earningsList, alertsList] = await Promise.all([
-    db.select().from(marketAssets),
+    loadMarketAssets(false),
     db.select().from(sectors),
     db.select().from(earningsReports),
     db.select().from(marketAlerts),
   ]);
+
+  const pct = (a: { changePercent: string }) => Number(a.changePercent) || 0;
+  const advancers = assetsList.filter((a) => pct(a) > 0).length;
+  const decliners = assetsList.filter((a) => pct(a) < 0).length;
+  const avgMove = assetsList.length ? assetsList.reduce((sum, a) => sum + pct(a), 0) / assetsList.length : 0;
+  const us10y = assetsList.find((a) => a.symbol === "US10Y");
+  const us2y = assetsList.find((a) => a.symbol === "US02Y");
 
   const topGainers = [...assetsList]
     .sort((a, b) => Number(b.changePercent) - Number(a.changePercent))
@@ -49,33 +58,39 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-6 overflow-x-auto text-[#B6BDC8]">
             <div className="flex items-center gap-2">
-              <span className="text-[#7D8594] text-[11px] uppercase">Global Mkt Cap:</span>
-              <span className="font-bold text-white">$118.4T</span>
-              <span className="text-[#2ECC71] text-[11px] font-semibold">(+0.62%)</span>
+              <span className="text-[#7D8594] text-[11px] uppercase">Tracked Assets:</span>
+              <span className="font-bold text-white">{assetsList.length}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[#7D8594] text-[11px] uppercase">24h Flow:</span>
-              <span className="font-bold text-white">$342.8B</span>
+              <span className="text-[#7D8594] text-[11px] uppercase">Advancers / Decliners:</span>
+              <span className="font-bold text-[#2ECC71]">{advancers}</span>
+              <span className="text-[#7D8594]">/</span>
+              <span className="font-bold text-[#FF6B6B]">{decliners}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[#7D8594] text-[11px] uppercase">AI Sentiment Radar:</span>
-              <span className="font-bold text-[#FF9A3C]">74 / 100</span>
-              <span className="text-[#2ECC71] text-[10px] font-bold">[BULLISH EXPANSION]</span>
+              <span className="text-[#7D8594] text-[11px] uppercase">Avg 1D Move:</span>
+              <span className={`font-bold ${avgMove >= 0 ? "text-[#2ECC71]" : "text-[#FF6B6B]"}`}>
+                {avgMove >= 0 ? "+" : ""}
+                {avgMove.toFixed(2)}%
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[#7D8594] text-[11px] uppercase">Fed Terminal Rate Exp:</span>
-              <span className="font-bold text-white">3.40%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[#7D8594] text-[11px] uppercase">VIX Volatility:</span>
-              <span className="font-bold text-[#2ECC71]">14.20</span>
-              <span className="text-[#7D8594] text-[10px]">[-0.45]</span>
-            </div>
+            {us10y && (
+              <div className="flex items-center gap-2">
+                <span className="text-[#7D8594] text-[11px] uppercase">US 10Y Yield:</span>
+                <span className="font-bold text-white">{Number(us10y.price).toFixed(2)}%</span>
+              </div>
+            )}
+            {us2y && (
+              <div className="flex items-center gap-2">
+                <span className="text-[#7D8594] text-[11px] uppercase">US 2Y Yield:</span>
+                <span className="font-bold text-white">{Number(us2y.price).toFixed(2)}%</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-[11px]">
             <span className="live-badge">
-              <span className="live-dot" /> LIVE STREAMING
+              <span className="live-dot" /> DELAYED 15 MIN · PASS = LATEST
             </span>
           </div>
         </div>

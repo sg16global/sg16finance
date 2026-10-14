@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Headphones,
   Mail,
@@ -14,20 +14,6 @@ import {
   Radio,
 } from "lucide-react";
 
-interface Ticket {
-  id: number;
-  name: string;
-  email: string;
-  tier: string;
-  subject: string;
-  category: string;
-  message: string;
-  status: string;
-  priority: string;
-  aiResponse: string | null;
-  createdAt: string;
-}
-
 export default function ContactPage() {
   const [form, setForm] = useState({
     name: "",
@@ -39,24 +25,6 @@ export default function ContactPage() {
   });
   const [loading, setLoading] = useState(false);
   const [instantResolution, setInstantResolution] = useState<string | null>(null);
-  const [recentTickets, setRecentTickets] = useState<Ticket[]>([]);
-
-  const fetchTickets = async () => {
-    try {
-      const res = await fetch("/api/support");
-      const data = await res.json();
-      if (data.success) {
-        setRecentTickets(data.tickets);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- client fetch on mount
-    void fetchTickets();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,10 +37,9 @@ export default function ContactPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { success?: boolean; instantResolution?: string };
       if (data.success) {
-        setInstantResolution(data.instantResolution);
-        fetchTickets();
+        setInstantResolution(data.instantResolution ?? null);
         setForm({
           name: "",
           email: "",
@@ -97,7 +64,7 @@ export default function ContactPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="live-badge text-[9px]">
-                <span className="live-dot" /> 24/7 AI AUTOMATED RESOLUTION
+                <span className="live-dot" /> REQUESTS ANSWERED BY OUR TEAM
               </span>
               <span className="text-[10px] font-mono-data text-[#7D8594]">
                 VIP OPERATIONS DESK
@@ -107,7 +74,7 @@ export default function ContactPage() {
               VIP Client Services & Operations
             </h1>
             <p className="text-xs text-[#7D8594] mt-0.5">
-              Instantaneous 24/7 automated resolution powered by SG16 Sentinel AI, backed by Saif Tech Global LLC
+              Send us a question. Our team at Saif Tech Global LLC reads every request and replies by email
             </p>
           </div>
 
@@ -185,7 +152,7 @@ export default function ContactPage() {
                   Submit VIP Service or Technical Inquiry
                 </h3>
                 <p className="text-xs text-[#7D8594]">
-                  Every inquiry is immediately processed by our 24/7 AI Sentinel engine with instant resolution.
+                  Every inquiry is logged and sent to our team. We reply to the email address you provide.
                 </p>
               </div>
             </div>
@@ -279,7 +246,7 @@ export default function ContactPage() {
                   required
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
-                  placeholder="Describe your inquiry. Our 24/7 AI Sentinel system will resolve it immediately..."
+                  placeholder="Describe your inquiry. Our team will reply by email..."
                   className="w-full rounded-lg bg-black/50 border border-white/10 px-3.5 py-2.5 text-white placeholder-[#7D8594] focus:outline-none focus:border-[#C76A16]"
                 />
               </div>
@@ -290,63 +257,9 @@ export default function ContactPage() {
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D97B22] to-[#C76A16] text-white font-semibold text-xs shadow-md hover:shadow-lg disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2"
               >
                 <Send className="w-4 h-4" />
-                <span>{loading ? "Sentinel AI Processing Ticket..." : "Submit Ticket for 24/7 Instant AI Resolution"}</span>
+                <span>{loading ? "Sentinel AI Processing Ticket..." : "Submit Support Request"}</span>
               </button>
             </form>
-          </div>
-        </div>
-
-        {/* Live Resolved Support Tickets Feed from Database */}
-        <div className="glass-shield overflow-hidden">
-          <div className="shield-accent-bar" />
-          <div className="glass-shield-inner p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                <Shield className="w-4 h-4 text-[#FF9A3C]" />
-                <span>Live Institutional Resolution Audit Log (PostgreSQL Feed)</span>
-              </h3>
-              <span className="text-[10px] font-mono-data text-[#7D8594]">
-                SHOWING RECENT TICKETS
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              {recentTickets.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2 text-xs"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-white">{ticket.subject}</span>
-                      <span className="text-[10px] font-mono-data px-1.5 py-0.5 rounded bg-white/5 text-[#7D8594]">
-                        {ticket.category}
-                      </span>
-                      <span className="text-[10px] font-mono-data px-1.5 py-0.5 rounded bg-[#C76A16]/20 text-[#FF9A3C]">
-                        {ticket.tier}
-                      </span>
-                    </div>
-
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono-data font-bold text-[#2ECC71] bg-[#2ECC71]/10 px-2 py-0.5 rounded border border-[#2ECC71]/20">
-                      <CheckCircle2 className="w-3 h-3" />
-                      {ticket.status}
-                    </span>
-                  </div>
-
-                  <p className="text-[#7D8594]">{ticket.message}</p>
-
-                  {ticket.aiResponse && (
-                    <div className="p-3 rounded-lg bg-[#07090C] border border-white/5 space-y-1">
-                      <div className="flex items-center gap-1 text-[10px] font-mono-data text-[#FF9A3C] font-bold">
-                        <Bot className="w-3 h-3" />
-                        <span>SG16 SENTINEL AI AUTOMATED RESOLUTION:</span>
-                      </div>
-                      <p className="text-white/90 leading-relaxed font-sans">{ticket.aiResponse}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>

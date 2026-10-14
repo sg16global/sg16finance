@@ -1,0 +1,12 @@
+{
+  // Separate tiny Worker so the main app (vinext) stays untouched. Deploy: npm run deploy:cron
+  "name": "sg16finance-cron",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-02",
+  "workers_dev": false,
+  "preview_urls": false,
+  "triggers": { "crons": ["* * * * *", "0 3 * * *"] },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "sg16finance-db", "database_id": "8671a510-3431-41ad-be92-cdcb3faa3f72" }
+  ]
+}

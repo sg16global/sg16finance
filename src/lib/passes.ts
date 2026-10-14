@@ -104,5 +104,12 @@ export async function ensurePassTables(db: Sg16Database) {
     seconds INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (email, day)
   )`);
+  await db.run(sql`CREATE TABLE IF NOT EXISTS login_codes (
+    email TEXT PRIMARY KEY,
+    code_hash TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+  )`);
   tablesReady = true;
 }

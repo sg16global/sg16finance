@@ -15,6 +15,8 @@ import {
   Check,
 } from "lucide-react";
 import Link from "next/link";
+import SignInPanel from "@/components/SignInPanel";
+import { useAccess } from "@/lib/useAccess";
 
 interface WatchlistItem {
   id: number;
@@ -38,13 +40,14 @@ export default function WatchlistPage() {
   const [newTarget, setNewTarget] = useState("");
   const [newNotes, setNewNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const access = useAccess();
 
   const fetchWatchlist = async () => {
     try {
       const res = await fetch("/api/watchlist");
-      const data = await res.json();
+      const data = (await res.json()) as { success?: boolean; watchlist?: WatchlistItem[] };
       if (data.success) {
-        setItems(data.watchlist);
+        setItems(data.watchlist ?? []);
       }
     } catch (err) {
       console.error(err);
@@ -73,7 +76,7 @@ export default function WatchlistPage() {
           notes: newNotes,
         }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { success?: boolean };
       if (data.success) {
         fetchWatchlist();
         setNewSymbol("");
@@ -105,7 +108,7 @@ export default function WatchlistPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="live-badge text-[9px]">
-                <span className="live-dot" /> POSTGRESQL PERSISTENT
+                <span className="live-dot" /> CLOUDFLARE D1 PERSISTED
               </span>
               <span className="text-[10px] font-mono-data text-[#7D8594]">
                 USER SURVEILLANCE DESK
@@ -120,17 +123,33 @@ export default function WatchlistPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="fin-btn-primary"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Track New Asset</span>
-            </button>
+            {access.signedIn && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="fin-btn-primary"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Track New Asset</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Watchlist Table */}
+        {/* Signed out: the watchlist is private and scoped per account */}
+        {!access.loading && !access.signedIn ? (
+          <div className="glass-shield overflow-hidden">
+            <div className="shield-accent-bar" />
+            <div className="max-w-md mx-auto px-4 py-8 space-y-4">
+              <div className="text-center space-y-1">
+                <h2 className="text-lg font-extrabold text-white tracking-tight">Your watchlist is private</h2>
+                <p className="text-xs text-[#7D8594]">
+                  Sign in to track symbols, target prices and thesis notes. Each account sees only its own rows.
+                </p>
+              </div>
+              <SignInPanel heading="Sign in to access your watchlist" />
+            </div>
+          </div>
+        ) : (
         <div className="glass-shield overflow-hidden">
           <div className="shield-accent-bar" />
           <div className="overflow-x-auto">
@@ -248,6 +267,7 @@ export default function WatchlistPage() {
             </table>
           </div>
         </div>
+        )}
 
         {/* Add Modal */}
         {showAddModal && (

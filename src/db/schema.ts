@@ -77,10 +77,10 @@ export const supportTickets = sqliteTable("support_tickets", {
   subject: text("subject").notNull(),
   category: text("category").notNull(),
   message: text("message").notNull(),
-  status: text("status").default("AI Resolved").notNull(),
-  priority: text("priority").default("High").notNull(),
+  status: text("status").default("Received").notNull(),
+  priority: text("priority").default("Normal").notNull(),
   aiResponse: text("ai_response"),
-  aiConfidence: text("ai_confidence").default("98.5"),
+  aiConfidence: text("ai_confidence"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .notNull()
     .$defaultFn(() => new Date()),

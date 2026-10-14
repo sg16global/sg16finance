@@ -1,13 +1,28 @@
 import { NextResponse } from "next/server";
 import { getEnv } from "@/lib/env";
 import { PLANS, isPlanKey, normalizeEmail, productIdFor } from "@/lib/passes";
+import { clientIp, getSessionEmail, isSameOrigin, jsonError, rateLimit, verifyTurnstile } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
 /** POST { plan, email } -> { checkoutUrl } (Dodo Payments hosted checkout). */
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as { plan?: unknown; email?: unknown } | null;
-  const email = normalizeEmail(body?.email);
+  if (!isSameOrigin(request)) return jsonError("Forbidden", 403);
+  const ip = clientIp(request);
+  if (!(await rateLimit("RL_CHECKOUT", ip))) return jsonError("Too many checkout attempts. Try again in a minute.", 429);
+
+  const body = (await request.json().catch(() => null)) as {
+    plan?: unknown;
+    email?: unknown;
+    turnstileToken?: unknown;
+  } | null;
+  // A signed-in visitor already proved who they are (emailed code) and that they are human (Turnstile),
+  // so their pass is bound to the session email and no new challenge is needed. Anonymous buyers must pass Turnstile.
+  const sessionEmail = await getSessionEmail(request);
+  if (!sessionEmail && !(await verifyTurnstile(body?.turnstileToken, ip))) {
+    return jsonError("Security check failed. Please retry the verification.", 400);
+  }
+  const email = sessionEmail ?? normalizeEmail(body?.email);
   if (!isPlanKey(body?.plan) || !email) {
     return NextResponse.json({ success: false, error: "Valid plan and email are required" }, { status: 400 });
   }

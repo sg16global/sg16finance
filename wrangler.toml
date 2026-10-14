@@ -4,4 +4,5 @@ compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "sg16finance"
+database_name = "sg16finance-db"
+database_id = "8671a510-3431-41ad-be92-cdcb3faa3f72"

@@ -1,43 +1,40 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/db";
-import { marketAssets } from "@/db/schema";
 import { ensureDataSeeded } from "@/db/ensure-data";
+import { hasLiveAccess, loadMarketAssets } from "@/lib/market";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Pass holders get the latest stored prices; everyone else gets the same data 15 minutes behind.
+    const live = await hasLiveAccess(request);
     await ensureDataSeeded();
-    const db = await getDb();
-    const assets = await db.select().from(marketAssets);
+    const assets = await loadMarketAssets(live);
 
-    // Provide quotes with micro-tick variance for realistic 24/7 institutional live feed simulation
-    const liveQuotes = assets.map((asset) => {
-      const basePrice = Number(asset.price);
-      // Small simulated jitter between -0.05% and +0.05%
-      const jitterFactor = 1 + (Math.random() * 0.001 - 0.0005);
-      const simulatedPrice = (basePrice * jitterFactor).toFixed(basePrice < 10 ? 4 : 2);
-
-      return {
-        symbol: asset.symbol,
-        name: asset.name,
-        category: asset.category,
-        price: simulatedPrice,
-        basePrice: asset.price,
-        change: asset.change,
-        changePercent: asset.changePercent,
-        volume: asset.volume,
-        aiSentiment: asset.aiSentiment,
-        lastTick: new Date().toISOString(),
-      };
-    });
-
-    return NextResponse.json({
-      success: true,
-      timestamp: new Date().toISOString(),
-      feedLatencyMs: (1.2 + Math.random() * 0.8).toFixed(2),
-      quotes: liveQuotes,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        timestamp: new Date().toISOString(),
+        streaming: live,
+        delayMinutes: live ? 0 : 15,
+        quotes: assets.map((a) => ({
+          symbol: a.symbol,
+          name: a.name,
+          category: a.category,
+          price: a.price,
+          basePrice: a.price,
+          change: a.change,
+          changePercent: a.changePercent,
+          volume: a.volume,
+          aiSentiment: a.aiSentiment,
+          lastTick: a.asOf ?? a.updatedAt.toISOString(),
+          source: a.source,
+          delayed: a.delayed,
+          live,
+        })),
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
     console.error("Quotes API error:", error);
     return NextResponse.json({ success: false, error: "Failed to fetch quotes" }, { status: 500 });

@@ -22,6 +22,16 @@ interface AiCopilotModalProps {
   initialQuery?: string;
 }
 
+interface ChatReply {
+  success?: boolean;
+  response?: string;
+  error?: string;
+  confidence?: number;
+  verdict?: string;
+  ticketId?: number;
+  instantResolution?: string;
+}
+
 interface Message {
   id: string;
   sender: "user" | "ai";
@@ -39,17 +49,17 @@ export default function AiCopilotModal({ isOpen, onClose, initialQuery }: AiCopi
     {
       id: "welcome-1",
       sender: "ai",
-      text: `### SG16 Sentinel AI — 24/7 Institutional Financial Copilot
-Welcome to the SG16 automated financial intelligence engine. I am powered by Saif Tech Global's real-time cross-asset neural telemetry.
+      text: `### SG16 Sentinel AI: market research assistant
+I answer questions using the market data stored on this site (stocks, ETF proxies for indices and commodities, crypto, FX and US Treasury yields). I can only quote numbers that are in that data, and I will tell you when something is not available.
 
-**You can ask me to:**
-- Analyze any global ticker, index, or commodity (e.g., NVDA, SPX, GOLD, BTC, TSLA)
-- Provide plain-English breakdowns of SEC 10-Q/8-K earnings reports
-- Explain macroeconomic yield curve inversions and central bank policy rates
-- Stress-test sector sensitivity and portfolio risk parity models`,
+You can ask me to:
+- Compare tickers and explain how they moved today
+- Summarise the yield curve or a currency pair
+- Explain a recent earnings result in plain English
+- Define a metric such as P/E or dividend yield
+
+Educational information, not investment advice.`,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      confidence: 99.4,
-      verdict: "SYSTEM READY",
     },
   ]);
 
@@ -75,22 +85,49 @@ Welcome to the SG16 automated financial intelligence engine. I am powered by Sai
       const res = await fetch("/api/ai-copilot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: textToSend }),
+        body: JSON.stringify({
+          query: textToSend,
+          history: messages
+            .filter((m) => m.id !== "welcome-1")
+            .slice(-6)
+            .map((m) => ({ role: m.sender === "user" ? "user" : "assistant", content: m.text })),
+        }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as ChatReply;
+
+      if (res.status === 401 || res.status === 403) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ai-gate-${Date.now()}`,
+            sender: "ai",
+            text: `${data.error ?? "Access required."} Open the VIP Portal (/premium) to sign in with your email code or get a pass.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+        return;
+      }
 
       if (data.success) {
         const aiMsg: Message = {
           id: `ai-${Date.now()}`,
           sender: "ai",
-          text: data.response,
+          text: data.response ?? "",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           confidence: data.confidence,
           verdict: data.verdict,
         };
         setMessages((prev) => [...prev, aiMsg]);
       } else {
-        throw new Error(data.error || "Failed to generate AI intelligence");
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ai-err-${Date.now()}`,
+            sender: "ai",
+            text: data.error || "AI Sentinel could not answer right now. Please try again.",
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
       }
     } catch (err: any) {
       setMessages((prev) => [
@@ -105,7 +142,7 @@ Welcome to the SG16 automated financial intelligence engine. I am powered by Sai
     } finally {
       setLoading(false);
     }
-  }, [loading, query]);
+  }, [loading, query, messages]);
 
   useEffect(() => {
     if (initialQuery && isOpen && !initialQuerySent.current) {
@@ -158,7 +195,7 @@ Welcome to the SG16 automated financial intelligence engine. I am powered by Sai
                 </span>
               </div>
               <p className="text-[10px] font-mono-data text-[#7D8594]">
-                Neural Multi-Asset Financial Intelligence · Saif Tech Global LLC
+                AI Market Research Assistant · Saif Tech Global LLC
               </p>
             </div>
           </div>
@@ -263,7 +300,7 @@ Welcome to the SG16 automated financial intelligence engine. I am powered by Sai
               </div>
               <div className="glass-card rounded-xl px-4 py-3 text-xs text-[#B6BDC8] border border-white/10 flex items-center gap-2">
                 <span className="live-dot" />
-                <span>SG16 DeepQuant Neural Engine parsing order books & macroeconomic catalysts...</span>
+                <span>Reading the latest market data...</span>
               </div>
             </div>
           )}

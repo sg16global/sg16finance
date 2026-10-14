@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Shield, Globe, Lock, Terminal, Cpu } from "lucide-react";
+import { Shield, Globe, Lock, Terminal, Cpu, BadgeCheck } from "lucide-react";
+import CertificateViewer from "./CertificateViewer";
 
 export default function Footer() {
   return (
@@ -150,6 +151,55 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
+          </div>
+        </div>
+
+        {/* Corporate Registration & License */}
+        <div className="mt-8 pt-6 border-t border-white/5">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-6 items-start">
+            <div>
+              <h4 className="text-[10px] font-mono-data uppercase tracking-wider text-[#FF9A3C] font-bold mb-3 flex items-center gap-1.5">
+                <BadgeCheck className="w-3.5 h-3.5" />
+                Corporate Registration & License
+              </h4>
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-[11px]">
+                <div>
+                  <dt className="text-[#7D8594]">Company Name</dt>
+                  <dd className="text-white font-semibold">SAIF TECH GLOBAL LLC</dd>
+                </div>
+                <div>
+                  <dt className="text-[#7D8594]">Company Website</dt>
+                  <dd>
+                    <a
+                      href="https://www.saiftechglobal.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#FF9A3C] font-mono-data hover:text-white transition-colors"
+                    >
+                      www.saiftechglobal.com
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[#7D8594]">Business ID / Registration Number</dt>
+                  <dd className="text-white font-mono-data font-semibold">0008128993</dd>
+                </div>
+                <div>
+                  <dt className="text-[#7D8594]">Jurisdiction</dt>
+                  <dd className="text-white font-semibold">State of New Mexico, USA</dd>
+                </div>
+                <div>
+                  <dt className="text-[#7D8594]">Effective Date</dt>
+                  <dd className="text-white font-semibold">September 10, 2026</dd>
+                </div>
+              </dl>
+            </div>
+            <div className="print:hidden">
+              <CertificateViewer />
+              <p className="mt-2 max-w-[200px] text-[10px] font-mono-data text-[#7D8594]">
+                Click to inspect the official Certificate of Organization.
+              </p>
+            </div>
           </div>
         </div>
 

@@ -1,51 +1,60 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { supportTickets } from "@/db/schema";
-import { desc } from "drizzle-orm";
-import { ensureDataSeeded } from "@/db/ensure-data";
+import { getEnv } from "@/lib/env";
+import { normalizeEmail } from "@/lib/passes";
+import { supportFirstReply } from "@/lib/support-ai";
+import { eq } from "drizzle-orm";
+import { clientIp, isSameOrigin, jsonError, rateLimit } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+// NOTE: there is intentionally no GET handler. Tickets contain customers' names, emails and private
+// messages, so they must never be listable from a public endpoint.
+
+const clip = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+
+/** Emails the ticket to the operator when SUPPORT_NOTIFY_EMAIL (and RESEND_API_KEY) are configured. */
+async function notifyOperator(ticket: { id: number; name: string; email: string; subject: string; category: string; message: string }) {
+  const to = await getEnv("SUPPORT_NOTIFY_EMAIL");
+  const apiKey = await getEnv("RESEND_API_KEY");
+  if (!to || !apiKey) return;
   try {
-    await ensureDataSeeded();
-    const db = await getDb();
-    const tickets = await db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt)).limit(20);
-    return NextResponse.json({ success: true, tickets });
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: (await getEnv("AUTH_FROM_EMAIL")) ?? "SG16 Finance <login@sg16finance.com>",
+        to: [to],
+        reply_to: ticket.email,
+        subject: `[SG16 support #${ticket.id}] ${ticket.subject}`,
+        text: `From: ${ticket.name} <${ticket.email}>\nCategory: ${ticket.category}\n\n${ticket.message}`,
+      }),
+    });
   } catch (error) {
-    console.error("Support GET error:", error);
-    return NextResponse.json({ success: false, error: "Failed to fetch support tickets" }, { status: 500 });
+    console.error("Support notification failed:", error);
   }
 }
 
+/** POST a support request. It is stored and emailed to the team; nothing is auto-"resolved". */
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return jsonError("Forbidden", 403);
+  if (!(await rateLimit("RL_AUTH", `support:${clientIp(request)}`))) return jsonError("Too many requests. Try again in a minute.", 429);
+
   try {
-    await ensureDataSeeded();
-    const db = await getDb();
-    const body = await request.json();
-    const { name, email, tier = "VIP Pro", subject, category = "Market Inquiry", message } = body;
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+    const name = clip(body?.name, 120);
+    const email = normalizeEmail(body?.email);
+    const subject = clip(body?.subject, 200);
+    const message = clip(body?.message, 4000);
+    const tier = clip(body?.tier, 40) || "VIP Pro";
+    const category = clip(body?.category, 60) || "Market Inquiry";
 
     if (!name || !email || !subject || !message) {
-      return NextResponse.json(
-        { success: false, error: "Name, email, subject, and message are required" },
-        { status: 400 }
-      );
+      return jsonError("Name, a valid email, subject, and message are required", 400);
     }
 
-    // Generate instantaneous 24/7 automated AI resolution
-    let aiResponse = "";
-    const lowerSub = subject.toLowerCase() + " " + message.toLowerCase();
-
-    if (lowerSub.includes("api") || lowerSub.includes("key") || lowerSub.includes("webhook")) {
-      aiResponse = `SG16 Sentinel AI 24/7 Instant Resolution: Your request regarding API access and webhook endpoints has been verified. API keys for your ${tier} plan can be managed at /premium under the Institutional API Keys section. Endpoints support standard REST JSON and WebSocket streaming feeds at wss://stream.sg16finance.com/v2 with sub-5ms SLA. Rate limit for ${tier}: 10,000 req/min.`;
-    } else if (lowerSub.includes("data") || lowerSub.includes("quote") || lowerSub.includes("live") || lowerSub.includes("feed")) {
-      aiResponse = `SG16 Sentinel AI 24/7 Instant Resolution: All real-time quotes in SG16 Finance are aggregated directly across major international exchanges (NYSE, NASDAQ, LSE, TSE, COMEX). Latency telemetry is continuously calibrated. If you need specialized Level 2 order-book depth for algorithmic execution, please ensure your account is authenticated with your Institutional certificate.`;
-    } else if (lowerSub.includes("billing") || lowerSub.includes("subscription") || lowerSub.includes("tier")) {
-      aiResponse = `SG16 Sentinel AI 24/7 Instant Resolution: VIP billing and institutional invoicing are handled securely with automated monthly compliance receipts. You can upgrade, downgrade, or issue corporate multi-seat licenses directly from the /premium page. Corporate accounts may also request net-30 bank wire invoicing.`;
-    } else {
-      aiResponse = `SG16 Sentinel AI 24/7 Instant Resolution: Thank you for contacting SG16 Finance VIP Client Operations. We have automatically analyzed your inquiry regarding "${subject}". Our 24/7 intelligence engine has flagged this ticket with High priority. A dedicated Saif Tech Global quantitative specialist will also follow up directly to ${email} within 15 minutes if further manual review is needed.`;
-    }
-
+    const db = await getDb();
     const inserted = await db
       .insert(supportTickets)
       .values({
@@ -55,21 +64,30 @@ export async function POST(request: Request) {
         subject,
         category,
         message,
-        status: "AI Resolved",
-        priority: tier === "Sovereign" || tier === "Institutional" ? "Urgent" : "High",
-        aiResponse,
-        aiConfidence: "99.20",
+        status: "Received",
+        priority: tier === "Sovereign" || tier === "Institutional" ? "Urgent" : "Normal",
+        aiResponse: null,
+        aiConfidence: null,
       })
       .returning();
+    const ticket = inserted[0];
 
-    return NextResponse.json({
-      success: true,
-      ticket: inserted[0],
-      instantResolution: aiResponse,
-      message: "Ticket created and automatically resolved by SG16 Sentinel AI 24/7 Support.",
-    });
+    await notifyOperator({ id: ticket.id, name, email, subject, category, message });
+
+    // AI first response (Cloudflare Workers AI). It is labelled as automated and never marks the ticket "resolved".
+    const ack = `Your request was received and logged as ticket #${ticket.id}. The Saif Tech Global team will reply to ${email}.`;
+    const ai = await supportFirstReply({ id: ticket.id, category, subject, message });
+    const reply = ai ? `Automated first response: ${ai}
+
+${ack}` : `Thank you. ${ack}`;
+    if (ai) await db.update(supportTickets).set({ aiResponse: ai }).where(eq(supportTickets.id, ticket.id));
+
+    return NextResponse.json(
+      { success: true, ticketId: ticket.id, aiAssisted: Boolean(ai), instantResolution: reply, message: reply },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
     console.error("Support POST error:", error);
-    return NextResponse.json({ success: false, error: "Failed to submit support ticket" }, { status: 500 });
+    return jsonError("Failed to submit support ticket", 500);
   }
 }

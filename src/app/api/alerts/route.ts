@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { marketAlerts } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { ensureDataSeeded } from "@/db/ensure-data";
+import { getSessionEmail, jsonError } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +20,15 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const email = await getSessionEmail(request);
+  if (!email) return jsonError("Sign in required", 401);
+
   try {
     const db = await getDb();
-    const body = await request.json();
-    const { id } = body;
-    if (id) {
-      await db.update(marketAlerts).set({ read: true }).where(eq(marketAlerts.id, Number(id)));
+    const body = (await request.json()) as { id?: unknown };
+    const id = Number(body.id);
+    if (Number.isInteger(id) && id > 0) {
+      await db.update(marketAlerts).set({ read: true }).where(eq(marketAlerts.id, id));
     }
     return NextResponse.json({ success: true });
   } catch (error) {

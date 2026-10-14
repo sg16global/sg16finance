@@ -1,7 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import DashboardShell from "@/components/DashboardShell";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const ibmPlexMono = IBM_Plex_Mono({
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-ibm-plex-mono",
+  display: "swap",
+});
 
 export const viewport: Viewport = {
   themeColor: "#07090C",
@@ -37,15 +47,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800;900&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={`dark ${inter.variable} ${ibmPlexMono.variable}`}>
       <body className="bg-[#07090C] text-[#B6BDC8] antialiased">
         <DashboardShell>{children}</DashboardShell>
       </body>

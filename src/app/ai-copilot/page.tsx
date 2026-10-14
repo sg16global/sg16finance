@@ -17,6 +17,16 @@ import {
   Activity,
 } from "lucide-react";
 
+interface ChatReply {
+  success?: boolean;
+  response?: string;
+  error?: string;
+  confidence?: number;
+  verdict?: string;
+  ticketId?: number;
+  instantResolution?: string;
+}
+
 interface Message {
   id: string;
   sender: "user" | "ai";
@@ -51,17 +61,17 @@ function AiCopilotContent() {
     {
       id: "init-1",
       sender: "ai",
-      text: `### SG16 Sentinel AI — 24/7 Institutional Automated Intelligence
-Autonomous financial research engine calibrated with Saif Tech Global LLC cross-border quantitative telemetry.
+      text: `### SG16 Sentinel AI: market research assistant
+I answer questions using the market data stored on this site (stocks, ETF proxies for indices and commodities, crypto, FX and US Treasury yields). I can only quote numbers that are in that data, and I will tell you when something is not available.
 
-**Available Capabilities:**
-- **Ticker & Multi-Asset Synthesis:** Real-time valuation multiples, technical momentum, and free-cash-flow forecasts.
-- **Plain-English Earnings Breakdown:** Immediate translation of complex SEC filings without financial jargon.
-- **Macroeconomic & Yield Modeling:** Interest rate path probabilities, inflation matrices, and commodity flows.
-- **24/7 Automated Support:** Instant resolution for FIX protocol latency, API endpoints, and institutional licensing.`,
+You can ask me to:
+- Compare tickers and explain how they moved today
+- Summarise the yield curve or a currency pair
+- Explain a recent earnings result in plain English
+- Define a metric such as P/E or dividend yield
+
+Educational information, not investment advice.`,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      confidence: 99.4,
-      verdict: "SYSTEM READY",
     },
   ]);
 
@@ -87,15 +97,34 @@ Autonomous financial research engine calibrated with Saif Tech Global LLC cross-
       const res = await fetch("/api/ai-copilot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: textToSend }),
+        body: JSON.stringify({
+          query: textToSend,
+          history: messages
+            .filter((m) => m.id !== "welcome-1")
+            .slice(-6)
+            .map((m) => ({ role: m.sender === "user" ? "user" : "assistant", content: m.text })),
+        }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as ChatReply;
+
+      if (res.status === 401 || res.status === 403) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ai-gate-${Date.now()}`,
+            sender: "ai",
+            text: `${data.error ?? "Access required."} Open the VIP Portal (/premium) to sign in with your email code or get a pass.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+        return;
+      }
 
       if (data.success) {
         const aiMsg: Message = {
           id: `ai-${Date.now()}`,
           sender: "ai",
-          text: data.response,
+          text: data.response ?? "",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           confidence: data.confidence,
           verdict: data.verdict,
@@ -117,7 +146,7 @@ Autonomous financial research engine calibrated with Saif Tech Global LLC cross-
     } finally {
       setLoading(false);
     }
-  }, [loading, query]);
+  }, [loading, query, messages]);
 
   useEffect(() => {
     if (initialQ && !initialQuerySent.current) {
@@ -137,10 +166,10 @@ Autonomous financial research engine calibrated with Saif Tech Global LLC cross-
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(ticketForm),
       });
-      const data = await res.json();
+      const data = (await res.json()) as ChatReply;
       if (data.success) {
-        setTicketRef(Math.floor(1000 + Math.random() * 9000));
-        setTicketSuccess(data.instantResolution);
+        setTicketRef(typeof data.ticketId === "number" ? data.ticketId : null);
+        setTicketSuccess(data.instantResolution ?? null);
         // Also inject into the chat stream
         setMessages((prev) => [
           ...prev,
@@ -153,10 +182,9 @@ Autonomous financial research engine calibrated with Saif Tech Global LLC cross-
           {
             id: `ticket-ai-${Date.now()}`,
             sender: "ai",
-            text: data.instantResolution,
+            text: data.instantResolution ?? "",
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            confidence: 99.2,
-            verdict: "TICKET AI RESOLVED",
+            verdict: "TICKET RECEIVED",
           },
         ]);
         setMode("analyst");
@@ -199,7 +227,7 @@ Autonomous financial research engine calibrated with Saif Tech Global LLC cross-
               SG16 Sentinel AI Terminal & 24/7 VIP Support
             </h1>
             <p className="text-xs text-[#7D8594] mt-0.5">
-              Continuous cross-asset quantitative analysis and automatic institutional query resolution
+              AI-assisted market research grounded in the data stored on this site
             </p>
           </div>
 
@@ -318,7 +346,7 @@ Autonomous financial research engine calibrated with Saif Tech Global LLC cross-
                   </div>
                   <div className="glass-card rounded-xl px-4 py-3 text-xs text-[#B6BDC8] border border-white/10 flex items-center gap-2">
                     <span className="live-dot" />
-                    <span>DeepQuant neural model synthesizing order flow, multiples & macro catalysts...</span>
+                    <span>Reading the latest market data...</span>
                   </div>
                 </div>
               )}
@@ -374,7 +402,7 @@ Autonomous financial research engine calibrated with Saif Tech Global LLC cross-
                 <div className="p-4 rounded-xl bg-[#2ECC71]/10 border border-[#2ECC71]/30 text-xs text-[#2ECC71] space-y-2">
                   <div className="flex items-center gap-2 font-bold">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Ticket #SG16-{ticketRef ?? "----"} AI Resolved & Logged</span>
+                    <span>Ticket #SG16-{ticketRef ?? "----"} Received & Logged</span>
                   </div>
                   <p className="text-white font-sans whitespace-pre-wrap">{ticketSuccess}</p>
                 </div>

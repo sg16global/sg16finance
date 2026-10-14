@@ -26,3 +26,9 @@ Thumbs.db
 # IDE
 .idea/
 .vscode/
+
+# local worker secrets
+.dev.vars
+
+# wrangler local state
+.wrangler/

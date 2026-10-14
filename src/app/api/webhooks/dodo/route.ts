@@ -85,7 +85,15 @@ export async function POST(request: Request) {
   } catch {
     valid = false;
   }
-  if (!valid) return NextResponse.json({ success: false, error: "Invalid signature" }, { status: 401 });
+  if (!valid) {
+    // Diagnostics only: which check failed. Never log the secret or the signature itself.
+    const skew = Number.isFinite(Number(timestamp)) && timestamp ? Math.round(Date.now() / 1000 - Number(timestamp)) : null;
+    console.warn(
+      `[dodo-webhook] rejected: webhook-id=${Boolean(id)} signature-header=${Boolean(signature)} clock-skew-s=${skew} ` +
+        `secret-length=${secret.length} secret-has-whsec-prefix=${secret.startsWith("whsec_")}`,
+    );
+    return NextResponse.json({ success: false, error: "Invalid signature" }, { status: 401 });
+  }
 
   let event: { type?: string; data?: unknown };
   try {

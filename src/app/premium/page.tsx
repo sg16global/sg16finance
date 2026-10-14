@@ -13,7 +13,19 @@ import {
   CheckCircle2,
   Lock,
   Clock,
+  BadgeCheck,
 } from "lucide-react";
+import Turnstile from "@/components/Turnstile";
+import SignInPanel from "@/components/SignInPanel";
+import {
+  PLAN_LABELS,
+  emailFromReturnUrl,
+  formatRemaining,
+  readSavedEmail,
+  saveEmail,
+  signOut,
+  useAccess,
+} from "@/lib/useAccess";
 
 export default function PremiumPage() {
   const [selectedTier, setSelectedTier] = useState<string>("vip");
@@ -27,22 +39,21 @@ export default function PremiumPage() {
     () => new URLSearchParams(window.location.search).get("paid"),
     () => null
   );
-  const savedEmail = useSyncExternalStore(
-    noopSubscribe,
-    () => {
-      try {
-        return localStorage.getItem("sg16_email") ?? "";
-      } catch {
-        return "";
-      }
-    },
-    () => ""
-  );
-  const email = typedEmail ?? savedEmail;
+  const savedEmail = useSyncExternalStore(noopSubscribe, readSavedEmail, () => "");
+  const returnEmail = useSyncExternalStore(noopSubscribe, emailFromReturnUrl, () => "");
+  const email = typedEmail ?? (returnEmail || savedEmail);
+  const access = useAccess(Boolean(paidPlan));
+  const [checkoutToken, setCheckoutToken] = useState<string | null>(null);
+  const [checkoutReset, setCheckoutReset] = useState(0);
   const activatedSuccess =
     paidPlan && !bannerDismissed
-      ? "Payment received. Your pass activates within a minute of confirmation, linked to the email you entered."
+      ? access.hasAccess
+        ? `Payment confirmed. Your ${PLAN_LABELS[access.plan ?? ""] ?? "pass"} is now active.`
+        : access.signedIn
+          ? "Payment received. Confirming your pass now. This usually takes under a minute."
+          : "Payment received. Sign in below with the email you paid with to activate your pass."
       : null;
+  const isCurrent = (id: string) => access.hasAccess && access.plan === id;
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
@@ -138,21 +149,29 @@ export default function PremiumPage() {
   };
 
   const handleActivate = async (planKey: string) => {
-    if (planKey === "free") return;
+    if (planKey === "free" || isCurrent(planKey)) return;
     setCheckoutError(null);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    // Signed-in buyers use their verified email and skip the bot check.
+    const buyer = access.signedIn ? access.email : email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyer)) {
       setCheckoutError("Enter a valid email first. Your pass is linked to it.");
       return;
     }
+    if (!access.signedIn && !checkoutToken) {
+      setCheckoutError("Please complete the security check first.");
+      return;
+    }
     setLoadingPlan(planKey);
-    try {
-      localStorage.setItem("sg16_email", email.trim());
-    } catch {}
+    saveEmail(buyer);
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planKey, email: email.trim() }),
+        body: JSON.stringify({
+          plan: planKey,
+          email: buyer,
+          ...(access.signedIn ? {} : { turnstileToken: checkoutToken }),
+        }),
       });
       const data = (await res.json()) as { checkoutUrl?: string; error?: string };
       if (!res.ok || !data.checkoutUrl) throw new Error(data.error ?? "Checkout failed");
@@ -160,6 +179,8 @@ export default function PremiumPage() {
     } catch (err) {
       setCheckoutError(err instanceof Error ? err.message : "Could not start checkout");
       setLoadingPlan(null);
+      setCheckoutToken(null);
+      setCheckoutReset((n) => n + 1); // Turnstile tokens are single-use
     }
   };
 
@@ -197,21 +218,61 @@ export default function PremiumPage() {
           </div>
         )}
 
-        {/* Checkout email */}
-        <div className="max-w-xl mx-auto space-y-2">
-          <label htmlFor="checkout-email" className="block text-[10px] font-mono-data uppercase tracking-wider text-[#FF9A3C] font-bold">
-            Your email (your pass is linked to it)
-          </label>
-          <input
-            id="checkout-email"
-            type="email"
-            value={email}
-            onChange={(e) => setTypedEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-[#7D8594] focus:border-[#C76A16]/60 focus:outline-none"
-          />
-          {checkoutError && <p className="text-xs text-[#FF6B6B]">{checkoutError}</p>}
-        </div>
+        {/* Persistent subscription status (read from the pass saved for this browser's email) */}
+        {access.hasAccess && (
+          <div className="max-w-xl mx-auto rounded-xl border border-[#C76A16]/50 bg-[#C76A16]/10 p-4 flex items-start gap-3">
+            <BadgeCheck className="w-5 h-5 shrink-0 text-[#2ECC71] mt-0.5" />
+            <div className="space-y-1 text-xs">
+              <p className="text-sm font-bold text-white">
+                You are subscribed: {PLAN_LABELS[access.plan ?? ""] ?? "Active pass"}
+              </p>
+              <p className="text-[#B6BDC8]">
+                {access.expiresAt
+                  ? `Active until ${new Date(access.expiresAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`
+                  : "Active"}
+                {typeof access.remainingSeconds === "number" && access.dailyLimitSeconds
+                  ? ` · ${formatRemaining(access.remainingSeconds)} left today`
+                  : ""}
+              </p>
+              <p className="font-mono-data text-[11px] text-[#7D8594]">Linked to {access.email}</p>
+              <button onClick={() => signOut()} className="text-[11px] text-[#FF9A3C] hover:text-white underline cursor-pointer">
+                Sign out
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Signed in without an active pass */}
+        {access.signedIn && !access.hasAccess && (
+          <p className="max-w-xl mx-auto text-center text-xs text-[#7D8594]">
+            Signed in as <span className="text-white">{access.email}</span> · no active pass yet ·{" "}
+            <button onClick={() => signOut()} className="text-[#FF9A3C] hover:text-white underline cursor-pointer">
+              Sign out
+            </button>
+          </p>
+        )}
+
+        {/* Verified sign-in (email + 6-digit code) */}
+        {!access.loading && !access.signedIn && <SignInPanel defaultEmail={email} />}
+
+        {/* Checkout email + bot check: only for visitors who are not signed in yet */}
+        {!access.loading && !access.signedIn && (
+          <div className="max-w-xl mx-auto space-y-2">
+            <label htmlFor="checkout-email" className="block text-[10px] font-mono-data uppercase tracking-wider text-[#FF9A3C] font-bold">
+              Your email (your pass is linked to it)
+            </label>
+            <input
+              id="checkout-email"
+              type="email"
+              value={email}
+              onChange={(e) => setTypedEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-[#7D8594] focus:border-[#C76A16]/60 focus:outline-none"
+            />
+            <Turnstile onToken={setCheckoutToken} resetKey={checkoutReset} />
+          </div>
+        )}
+        {checkoutError && <p className="max-w-xl mx-auto text-xs text-[#FF6B6B]">{checkoutError}</p>}
 
         {/* Tiers Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -258,14 +319,18 @@ export default function PremiumPage() {
               <div className="p-6 pt-0">
                 <button
                   onClick={() => handleActivate(tier.id)}
-                  disabled={loadingPlan !== null}
+                  disabled={loadingPlan !== null || isCurrent(tier.id)}
                   className={`w-full py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 ${
                     tier.highlighted
                       ? "bg-gradient-to-r from-[#D97B22] to-[#C76A16] text-white shadow-lg hover:shadow-[0_0_25px_rgba(199,106,22,0.5)]"
                       : "bg-white/[0.05] text-[#B6BDC8] hover:bg-white/10 hover:text-white border border-white/10"
                   }`}
                 >
-                  {loadingPlan === tier.id ? "Redirecting to checkout..." : tier.buttonLabel}
+                  {isCurrent(tier.id)
+                    ? "Current Plan · Active"
+                    : loadingPlan === tier.id
+                      ? "Redirecting to checkout..."
+                      : tier.buttonLabel}
                 </button>
               </div>
             </div>
@@ -303,10 +368,14 @@ export default function PremiumPage() {
                 <div className="p-6 pt-0">
                   <button
                     onClick={() => handleActivate(pass.id)}
-                    disabled={loadingPlan !== null}
+                    disabled={loadingPlan !== null || isCurrent(pass.id)}
                     className="w-full py-3 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 bg-white/[0.05] text-[#B6BDC8] hover:bg-white/10 hover:text-white border border-white/10"
                   >
-                    {loadingPlan === pass.id ? "Redirecting to checkout..." : `Get ${pass.name}`}
+                    {isCurrent(pass.id)
+                      ? "Active · Current Pass"
+                      : loadingPlan === pass.id
+                        ? "Redirecting to checkout..."
+                        : `Get ${pass.name}`}
                   </button>
                 </div>
               </div>

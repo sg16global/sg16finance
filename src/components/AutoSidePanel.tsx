@@ -16,7 +16,9 @@ import {
   PieChart,
   TrendingUp,
   X,
+  BadgeCheck,
 } from "lucide-react";
+import { PLAN_LABELS, formatRemaining, useAccess } from "@/lib/useAccess";
 
 const AUTO_HIDE_MS = 4000;
 const HOVER_LEAVE_MS = 500;
@@ -40,6 +42,7 @@ export default function AutoSidePanel() {
   const open = openPath === pathname;
   const setOpen = useCallback((v: boolean) => setOpenPath(v ? pathname : null), [pathname]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const access = useAccess();
 
   const clearTimer = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -151,6 +154,42 @@ export default function AutoSidePanel() {
             );
           })}
         </nav>
+
+        {/* Subscription status for the email saved in this browser */}
+        {!access.loading && (
+          <Link
+            href="/premium"
+            className={`mt-2 flex items-start gap-2 rounded-lg border px-2.5 py-2 text-[11px] transition-colors ${
+              access.hasAccess
+                ? "border-[#2ECC71]/40 bg-[#2ECC71]/10 hover:bg-[#2ECC71]/15"
+                : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+            }`}
+          >
+            {access.hasAccess ? (
+              <BadgeCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#2ECC71]" />
+            ) : (
+              <Crown className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C76A16]" />
+            )}
+            <span className="space-y-0.5">
+              <span className="block font-semibold text-white">
+                {access.hasAccess
+                  ? `Subscribed · ${PLAN_LABELS[access.plan ?? ""] ?? "Active"}`
+                  : access.signedIn
+                    ? "Signed in · No active pass"
+                    : "Free tier · Sign in or upgrade"}
+              </span>
+              {access.hasAccess && (
+                <span className="block text-[#B6BDC8]">
+                  {typeof access.remainingSeconds === "number" && access.dailyLimitSeconds
+                    ? `${formatRemaining(access.remainingSeconds)} left today`
+                    : access.expiresAt
+                      ? `Until ${new Date(access.expiresAt).toLocaleDateString(undefined, { day: "numeric", month: "short" })}`
+                      : "Active"}
+                </span>
+              )}
+            </span>
+          </Link>
+        )}
       </aside>
     </>
   );

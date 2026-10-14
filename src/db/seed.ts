@@ -1,6 +1,19 @@
 import { getDb } from "./index";
 import { marketAssets, sectors, earningsReports, supportTickets, userWatchlist, marketAlerts } from "./schema";
 
+type SeedDb = Awaited<ReturnType<typeof getDb>>;
+
+// D1 caps bound variables per statement, so insert one row at a time.
+async function insertRows<T extends Parameters<SeedDb["insert"]>[0]>(
+  db: SeedDb,
+  table: T,
+  rows: Array<T["$inferInsert"]>,
+) {
+  for (const row of rows) {
+    await db.insert(table).values(row);
+  }
+}
+
 export async function seedDatabase() {
   const db = await getDb();
   // Check if assets already exist
@@ -10,7 +23,7 @@ export async function seedDatabase() {
   }
 
   // 1. Seed Market Assets
-  await db.insert(marketAssets).values([
+  await insertRows(db, marketAssets, [
     // Major Global Indices
     {
       symbol: "SPX",
@@ -475,7 +488,7 @@ export async function seedDatabase() {
   ]);
 
   // 2. Seed 11 GICS Sectors
-  await db.insert(sectors).values([
+  await insertRows(db, sectors, [
     {
       slug: "technology",
       name: "Information Technology",
@@ -765,7 +778,7 @@ export async function seedDatabase() {
   ]);
 
   // 3. Seed Plain-English Institutional Earnings Reports
-  await db.insert(earningsReports).values([
+  await insertRows(db, earningsReports, [
     {
       symbol: "NVDA",
       companyName: "NVIDIA Corporation",
@@ -977,7 +990,7 @@ export async function seedDatabase() {
   ]);
 
   // 4. Seed Live Market Alerts
-  await db.insert(marketAlerts).values([
+  await insertRows(db, marketAlerts, [
     {
       title: "FOMC Policy Trajectory Update",
       symbol: "SPX",
@@ -1017,7 +1030,7 @@ export async function seedDatabase() {
   ]);
 
   // 5. Seed User Watchlist
-  await db.insert(userWatchlist).values([
+  await insertRows(db, userWatchlist, [
     {
       userId: "guest_institutional_user",
       symbol: "NVDA",
@@ -1057,7 +1070,7 @@ export async function seedDatabase() {
   ]);
 
   // 6. Seed Sample AI Support Tickets (Demonstrating 24/7 Automated Support System)
-  await db.insert(supportTickets).values([
+  await insertRows(db, supportTickets, [
     {
       name: "Marcus Vance",
       email: "m.vance@citadel-alphacap.com",

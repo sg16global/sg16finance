@@ -76,3 +76,4 @@ Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` — pushes to `main` ru
 | `npm run deploy:vinext` | Deploy to Cloudflare |
 | `npm run db:push` | Apply schema (local file) |
 | `npm run db:seed` | Load institutional seed data |
+| `npm test` | Run the vitest suite (security, passes, access gating) |
