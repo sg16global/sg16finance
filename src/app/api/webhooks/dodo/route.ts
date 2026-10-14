@@ -185,7 +185,7 @@ export async function POST(request: Request) {
           .update(accessPasses)
           .set({ status: "expired", expiresAt: new Date(now) })
           .where(and(eq(accessPasses.email, email), eq(accessPasses.plan, plan.key)));
-      } else if (type === "subscription.payment_failed" && plan.kind === "subscription") {
+      } else if (type === "subscription.payment_failed" || type === "subscription.failed") {
         // Renewal charge failed: access stays until the already-paid period ends (expiresAt).
         await db
           .update(accessPasses)
