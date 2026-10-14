@@ -32,7 +32,7 @@ jobs:
         run: npm run build:vinext
 
       - name: Deploy Worker
-        run: npm run deploy:vinext
+        run: npm run deploy:wrangler
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
