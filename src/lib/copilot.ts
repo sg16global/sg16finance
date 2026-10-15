@@ -5,8 +5,6 @@ import { getEnv } from "@/lib/env";
 import { loadMarketAssets } from "@/lib/market";
 
 export const DAILY_QUESTION_LIMIT = 30;
-const DEFAULT_MODEL = "claude-sonnet-5-5";
-const FALLBACK_MODEL = "claude-haiku-4-5-20251001";
 
 export interface ChatTurn {
   role: "user" | "assistant";
@@ -76,15 +74,6 @@ export async function consumeQuestion(email: string): Promise<{ allowed: boolean
   return { allowed: true, used: used + 1 };
 }
 
-async function callClaude(apiKey: string, model: string, system: string, messages: ChatTurn[]) {
-  const base = (await getEnv("ANTHROPIC_BASE_URL")) ?? "https://api.anthropic.com";
-  return fetch(`${base}/v1/messages`, {
-    method: "POST",
-    headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model, max_tokens: 800, system, messages }),
-  });
-}
-
 export type CopilotResult =
   | { ok: true; text: string; model: string; asOf: string }
   | { ok: false; reason: "unavailable" | "upstream" };
@@ -150,34 +139,6 @@ QUESTION: ${query}`.slice(0, BRAIN_MAX_CHARS);
     return { ok: true, text: answer, model: "sg16-brain", asOf };
   } catch (error) {
     console.error("SG16 Brain request failed:", error);
-    return { ok: false, reason: "upstream" };
-  }
-}
-
-async function askAnthropic(query: string, history: ChatTurn[]): Promise<CopilotResult> {
-  const apiKey = await getEnv("ANTHROPIC_API_KEY");
-  if (!apiKey) return { ok: false, reason: "unavailable" };
-
-  const { text: context, asOf } = await buildContext();
-  const system = `${SYSTEM_PROMPT}
-
-${context}`;
-  const messages: ChatTurn[] = [...history, { role: "user", content: query }];
-
-  const model = (await getEnv("AI_MODEL")) ?? DEFAULT_MODEL;
-  try {
-    let res = await callClaude(apiKey, model, system, messages);
-    if (res.status === 404 && model !== FALLBACK_MODEL) res = await callClaude(apiKey, FALLBACK_MODEL, system, messages);
-    if (!res.ok) {
-      console.error("Anthropic error:", res.status, (await res.text().catch(() => "")).slice(0, 300));
-      return { ok: false, reason: "upstream" };
-    }
-    const data = (await res.json()) as { model?: string; content?: Array<{ type: string; text?: string }> };
-    const answer = (data.content ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join("\n").trim();
-    if (!answer) return { ok: false, reason: "upstream" };
-    return { ok: true, text: answer, model: data.model ?? model, asOf };
-  } catch (error) {
-    console.error("Anthropic request failed:", error);
     return { ok: false, reason: "upstream" };
   }
 }
@@ -251,27 +212,22 @@ async function askWorkersAi(query: string, history: ChatTurn[]): Promise<Copilot
 }
 
 /**
- * Engine order. Default: Cloudflare Workers AI (fast, no extra key). Mistral first if MISTRAL_API_KEY is set,
- * Claude first if ANTHROPIC_API_KEY is set. AI_PROVIDER = "sg16" | "anthropic" | "mistral" | "workers"
- * puts that engine first. Cloudflare AI is always the final backup,
+ * Engine order. Default: Cloudflare Workers AI (fast, no extra key). Mistral first if MISTRAL_API_KEY is set.
+ * AI_PROVIDER = "sg16" | "mistral" | "workers" puts that engine first. Cloudflare AI is always the final backup,
  * so a slow or failing engine never leaves the user without an answer.
  */
 export async function askCopilot(query: string, history: ChatTurn[]): Promise<CopilotResult> {
   const choice = (await getEnv("AI_PROVIDER"))?.toLowerCase();
-  const hasClaude = Boolean(await getEnv("ANTHROPIC_API_KEY"));
   const hasMistral = Boolean(await getEnv("MISTRAL_API_KEY"));
   const first =
-    choice === "sg16" || choice === "anthropic" || choice === "mistral" || choice === "workers"
+    choice === "sg16" || choice === "mistral" || choice === "workers"
       ? choice
-      : hasClaude
-        ? "anthropic"
-        : hasMistral
-          ? "mistral"
-          : "workers";
+      : hasMistral
+        ? "mistral"
+        : "workers";
 
   const run: Record<string, () => Promise<CopilotResult>> = {
     sg16: () => askSg16Brain(query, history),
-    anthropic: () => askAnthropic(query, history),
     mistral: () => askMistral(query, history),
     workers: () => askWorkersAi(query, history),
   };

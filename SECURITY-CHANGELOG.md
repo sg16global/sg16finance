@@ -3,6 +3,11 @@
 Single source of truth for the edge-security framework, so any tool or person editing this repo stays in sync.
 Newest first. Do not remove or bypass the checks below without updating this file.
 
+## 2026-10-15: Anthropic (Claude) engine removed completely
+
+- **Anthropic removed from the copilot** (`src/lib/copilot.ts`): the `askAnthropic`/`callClaude` code path, the Claude model constants and the `anthropic` option of `AI_PROVIDER` are gone. Engines are now the SG16 Brain (`SG16_BRAIN_KEY`), Mistral (`MISTRAL_API_KEY`) and Cloudflare Workers AI (always the final backup). `AI_PROVIDER=sg16|mistral|workers`; with no key set, the copilot runs on Workers AI.
+- **No Anthropic secrets anywhere:** `ANTHROPIC_API_KEY` / `ANTHROPIC_BASE_URL` are no longer read by any code path and are removed from `.dev.vars`; `cloudflare.config.ts` already did not declare them, so deploys never require them.
+
 ## 2026-10-15: git connection, Workers Builds auto-deploy, verified deploy
 
 - **Source of truth restored:** the full project (all auth/payment/security/data files, including the 27 files that were missing from the old "3.8 upgrade" archive) now lives in one git repo — `sg16global/sg16finance`, branch `main` — committed on top of the existing history (nothing force-pushed, timeline preserved).
@@ -11,7 +16,7 @@ Newest first. Do not remove or bypass the checks below without updating this fil
 - **Repo hygiene:** `.wrangler/` and relocated build output ignored; stale `.next` type artifacts removed (they broke `tsc --noEmit`); `tsc --noEmit`, `eslint .` and `vitest` (22 tests) all clean; README deploy section updated to match reality.
 - **Backups:** full dated copy of the working project kept outside the repo (`BACKUPS/sg16finance-2026-10-15`). No secrets are committed anywhere; `.dev.vars`/`.env.local` stay local-only.
 - **Note for future deploys:** `cf deploy` may show a "local configuration differs from the Dashboard" prompt; the remote Worker config now matches `cloudflare.config.ts` (the 2026-10-14 deploy applied it), so the diff should no longer appear. If it ever does, answer Yes — the config in git is the source of truth.
-- **Mistral engine added (`src/lib/copilot.ts`):** `MISTRAL_API_KEY` (set with `wrangler secret put MISTRAL_API_KEY`, optional model override `MISTRAL_MODEL`, default `mistral-large-latest`) makes Mistral the first copilot engine automatically; `AI_PROVIDER=mistral|anthropic|sg16|workers` still forces any engine. Cloudflare Workers AI remains the guaranteed backup, so the copilot never goes dark. Production today runs on Workers AI until a Mistral key is set.
+- **Mistral engine added (`src/lib/copilot.ts`):** `MISTRAL_API_KEY` (set with `wrangler secret put MISTRAL_API_KEY`, optional model override `MISTRAL_MODEL`, default `mistral-large-latest`) makes Mistral the first copilot engine automatically; `AI_PROVIDER=mistral|sg16|workers` still forces any engine. Cloudflare Workers AI remains the guaranteed backup, so the copilot never goes dark. Production today runs on Workers AI until a Mistral key is set.
 - **Refund, dispute & subscription-end handling (`src/app/api/webhooks/dodo/route.ts`):** `refund.succeeded` (Dodo's exact event name; `payment.refunded`/`refund.created` kept as aliases) ends the paid access immediately — the pass is matched by the original `payment_id` first, falling back to email+plan. Chargebacks run through the `dispute.*` lifecycle: `dispute.opened`/`challenged`/`accepted`/`lost` revoke access immediately (status `disputed`); `dispute.won`/`cancelled`/`expired` restore it (one-time passes until their original end date, subscriptions for the fallback period). `subscription.expired` ends access at expiry; `subscription.failed` (Dodo's name; `subscription.payment_failed` kept as alias) marks the pass `past_due` while access continues only until the already-paid period ends. Subscribe to `refund.succeeded` and the seven `dispute.*` events on the Dodo endpoint alongside the existing ones.
 
 ## 2026-10-14: per-account watchlist gating, alerts gating, tests, build repair
@@ -45,18 +50,18 @@ Newest first. Do not remove or bypass the checks below without updating this fil
   Tables created by the Worker: `market_meta`, `quote_history` (5-minute history, pruned after 48 h).
 - **Truthful delay:** free visitors get the price from 15 minutes ago (`src/lib/market.ts`); signed-in pass holders get the latest.
   Applies to `/api/quotes`, `/api/dashboard` and the home page.
-- **Copilot** (`src/lib/copilot.ts`, `/api/ai-copilot`): Claude via `ANTHROPIC_API_KEY`, grounded only in the stored market data, 30 questions per
-  account per day (`ai_usage`), history sent from the chat UI. Returns an honest 503 when the key is not configured. No fake confidence scores.
+- **Copilot** (`src/lib/copilot.ts`, `/api/ai-copilot`): Cloudflare Workers AI by default (Mistral first when `MISTRAL_API_KEY` is set), grounded only in the stored market data, 30 questions per
+  account per day (`ai_usage`), history sent from the chat UI. Returns an honest 503 when no engine is available. No fake confidence scores.
 - **Removed invented numbers:** home KPI ribbon, markets macro banner (VIX, 10Y, spread, gold/oil), hard-coded "$118.4T" market cap.
 - **Still static / not real yet:** sector performance and weights, earnings reports (2024), market alerts/news, sample watchlist rows.
 - **AI engines** (`src/lib/copilot.ts`): default is Cloudflare Workers AI (`AI` binding in `wrangler.deploy.jsonc`, model
-  `@cf/meta/llama-3.3-70b-instruct-fp8-fast`, override with `AI_WORKERS_MODEL`). Optional first-in-line engines: Claude (`ANTHROPIC_API_KEY`) and the
-  SG16 Brain (`SG16_BRAIN_KEY`, `SG16_BRAIN_URL`; its project key is minted in the brain's admin console). `AI_PROVIDER=sg16|anthropic|workers` picks the
+  `@cf/meta/llama-3.3-70b-instruct-fp8-fast`, override with `AI_WORKERS_MODEL`). Optional first-in-line engines: Mistral (`MISTRAL_API_KEY`) and the
+  SG16 Brain (`SG16_BRAIN_KEY`, `SG16_BRAIN_URL`; its project key is minted in the brain's admin console). `AI_PROVIDER=sg16|mistral|workers` picks the
   first engine; Workers AI is always the final backup. A failed answer is refunded to the user's 30/day allowance.
 - **AI support** (`src/lib/support-ai.ts`, `/api/support`): each ticket is stored, optionally emailed to `SUPPORT_NOTIFY_EMAIL`, and gets a short
   automated first response from Cloudflare Workers AI built only from true site facts. It is labelled "Automated first response" and the ticket is
   never marked resolved. Falls back to a plain acknowledgement if AI is unavailable.
-- Secrets added: `FINNHUB_API_KEY` on `sg16finance-cron`; optional `ANTHROPIC_API_KEY`, `AI_MODEL`, `SUPPORT_NOTIFY_EMAIL` on `sg16finance`.
+- Secrets added: `FINNHUB_API_KEY` on `sg16finance-cron`; optional `SUPPORT_NOTIFY_EMAIL` on `sg16finance`.
 
 ## 2026-10-09: verified login, server-side gating, abuse shield, cron
 

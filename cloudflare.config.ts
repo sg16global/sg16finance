@@ -13,7 +13,7 @@ export default defineConfig({
     env: {
       ASSETS: bindings.assets(),
       // Required production secrets (set on the Worker with `wrangler secret put`).
-      // Optional AI keys (MISTRAL_API_KEY, ANTHROPIC_API_KEY, SG16_BRAIN_*) must NOT be declared here:
+      // Optional AI keys (MISTRAL_API_KEY, SG16_BRAIN_*) must NOT be declared here:
       // declared secrets are required at deploy time and the copilot falls back to Workers AI.
       // AUTH_DEV_LOG_CODE is local-dev only (.dev.vars) and must never exist in production.
       SESSION_SECRET: bindings.secret(),

@@ -5,7 +5,7 @@ import { clientIp, isSameOrigin, jsonError, rateLimit } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
-/** POST { query, history? } -> a Claude answer grounded in the stored market data. Pass holders only. */
+/** POST { query, history? } -> an AI answer grounded in the stored market data. Pass holders only. */
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return jsonError("Forbidden", 403);
   if (!(await rateLimit("RL_ACCESS", clientIp(request)))) return jsonError("Too many requests", 429);
