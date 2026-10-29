@@ -144,3 +144,14 @@ Deletes passes expired more than 7 days ago, expired login codes, usage rows old
 Encrypted AES-256-GCM sessions, Turnstile fail-closed, per-IP Workers rate limits, same-origin
 CSRF checks, HMAC-signed webhooks with 5-minute replay window, OTP hashing/expiry — see sections
 above.
+
+### Applied live via Cloudflare API (token `qwen-ops-temp-2026-10-30`, 2026-10-30)
+- Zone `security_header`: HSTS 2y + includeSubDomains + nosniff **enabled at the edge**.
+- New zone transform ruleset (`http_response_headers_transform`, expression `true`):
+  nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy,
+  X-Permitted-Cross-Domain-Policies on every response (SSR + API included).
+- Measured: zone plan **Free**; `security_level` already medium; **Bot Fight Mode was ON** and is
+  the cause of challenged non-browser traffic (webhooks!). Free-plan token API cannot toggle it
+  (405) → single dashboard click remains: Security → Bots → Bot Fight Mode OFF.
+- `tools/cf-fix.mjs` added: idempotent verify/report/zone automation encoding all measured
+  Free-plan API quirks (405 bot_management, 403 firewall-phase rulesets, unnamed transform rules).
