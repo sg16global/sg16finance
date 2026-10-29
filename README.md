@@ -52,25 +52,34 @@ The app also auto-seeds on first request when tables are empty.
 
 ## Deploy to Cloudflare
 
-Worker name: **sg16finance** (`cloudflare.config.ts` includes D1 binding `DB`).
+Worker name: **sg16finance** (`cloudflare.config.ts` includes D1 binding `DB`, domains,
+rate limits, AI binding and secrets).
+
+This is a **`cf` CLI project**: `vite build` writes Cloudflare Build Output to
+`.cloudflare/output/v0/`, and current Wrangler **refuses** to deploy that directory —
+always deploy with `cf`, never with `wrangler deploy`/`wrangler preview` (see `OPS-RUNBOOK.md`).
 
 ```bash
+npm install
 cf auth login
-npm run build:vinext
-npm run deploy:vinext
+npm run deploy            # build + deploy in one step
+# or, when .cloudflare/output already exists:
+npm run deploy:prebuilt   # cf deploy --prebuilt
 ```
 
-Attach **sg16finance.com** / **www** as custom domains on the Worker. Disconnect legacy **Pages** `dist` deploy if still active.
+Attach **sg16finance.com** / **www** as custom domains on the Worker (already declared in
+`cloudflare.config.ts`, re-applied on every deploy). Disconnect legacy **Pages** `dist`
+deploy if still active.
 
-**Note:** `npm run deploy:vinext` may show a "configuration differs from the Dashboard" prompt before uploading — select **Yes** to continue. The Worker's D1 / AI / rate-limit bindings and both custom domains are defined in `cloudflare.config.ts` and are re-applied on every deploy.
+### Dashboard auto-deploy (Workers Builds)
 
-### CI auto-deploy
+| Setting | Value |
+|---|---|
+| Build command | `npm run build:vinext` |
+| Deploy command (production) | `npx cf deploy --prebuilt` |
+| Deploy command (preview/branch triggers) | `npx cf previews deploy --prebuilt` |
 
-Currently **disabled** (the Cloudflare API secrets were removed). Deploy manually from the machine
-that is logged in to Cloudflare (`npm run build:vinext` then `npm run deploy:vinext`). To re-enable
-auto-deploy on every push to `main`, either add `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`
-as GitHub Actions secrets together with a deploy workflow, or connect the repo under
-Workers → Settings → Build in the Cloudflare Dashboard.
+The Cron Worker is a plain Wrangler Worker: `npm run deploy:cron`.
 
 ## Scripts
 
@@ -78,8 +87,10 @@ Workers → Settings → Build in the Cloudflare Dashboard.
 |--------|---------|
 | `npm run dev` | Next.js dev (local SQLite) |
 | `npm run dev:vinext` | vinext dev with D1 simulation |
-| `npm run build:vinext` | Build for Workers |
-| `npm run deploy:vinext` | Deploy to Cloudflare |
+| `npm run build:vinext` | Build for Workers (`.cloudflare/output`) |
+| `npm run deploy` | `cf deploy` (build + upload) |
+| `npm run deploy:prebuilt` | `cf deploy --prebuilt` (upload existing output) |
+| `npm run deploy:cron` | Deploy the cron Worker (Wrangler) |
 | `npm run db:push` | Apply schema (local file) |
 | `npm run db:seed` | Load institutional seed data |
 | `npm test` | Run the vitest suite (security, passes, access gating) |
