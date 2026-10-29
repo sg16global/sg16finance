@@ -7,4 +7,25 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
+# ---------------------------------------------------------------------------
+# AI training / scraping bots: not welcome on this site.
+# This only stops well-behaved crawlers from indexing content for training;
+# it has NO effect on human visitors, SEO search bots, or site traffic.
+# (Real bot abuse is handled at the edge: Super Bot Fight Mode + WAF, see
+# OPS-RUNBOOK.md — robots.txt is not a security boundary.)
+# ---------------------------------------------------------------------------
+User-agent: ClaudeBot
+User-agent: Claude-Web
+User-agent: anthropic-ai
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: OAI-SearchBot
+User-agent: CCBot
+User-agent: Google-Extended
+User-agent: PerplexityBot
+User-agent: Amazonbot
+User-agent: meta-externalagent
+User-agent: Applebot-Extended
+Disallow: /
+
 Sitemap: https://sg16finance.com/sitemap.xml

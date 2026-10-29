@@ -115,3 +115,43 @@ Deletes passes expired more than 7 days ago, expired login codes, usage rows old
 ### Deploy
 - Main app: `npm run build:vinext` then `npm run deploy:wrangler`
 - Cron: `npm run deploy:cron`
+
+---
+
+## 2026-10-30 — Deploy pipeline moved to the `cf` CLI + edge hardening
+
+### Why
+- Workers Builds died at *Deploying*: current Wrangler refuses to deploy a project that contains
+  Cloudflare Build Output (`.cloudflare/output`) — this project builds for the `cf` CLI
+  (`cloudflare.config.ts`, `@cloudflare/vite-plugin` 2.x beta). Dashboard triggers now use
+  `npx cf deploy --prebuilt` (production) and `npx cf previews deploy --prebuilt` (previews).
+- Live checks showed the **zone** returning `403 / cf-mitigated: challenge` for `/` and
+  `/api/health` — an over-aggressive edge bot/WAF setting, not application code. Zone fix steps,
+  a WAF *skip* rule for the signed Dodo/Finnhub webhook paths, and a paid-plan checklist are
+  documented in `OPS-RUNBOOK.md`.
+
+### Changed files
+| File | Change |
+|---|---|
+| `package.json` | Deploy scripts now `cf deploy` / `cf deploy --prebuilt`; cron deploys from its own dir; floating `latest`/`beta` dep tags pinned to exact versions |
+| `public/_headers` | + `Strict-Transport-Security`, `Permissions-Policy`, `X-Permitted-Cross-Domain-Policies` (static assets) |
+| `public/robots.txt` | AI-training crawlers (ClaudeBot, GPTBot, CCBot, PerplexityBot, Amazonbot, …) disallowed — cosmetic for polite bots only; real abuse stays at the edge |
+| `public/.well-known/security.txt` | New: RFC 9116 vulnerability contact |
+| `wrangler.deploy.jsonc` | Marked DEPRECATED (Wrangler guard) |
+| `README.md`, `OPS-RUNBOOK.md` | Deploy + dashboard + zone-security runbook |
+
+### Unchanged (already strong)
+Encrypted AES-256-GCM sessions, Turnstile fail-closed, per-IP Workers rate limits, same-origin
+CSRF checks, HMAC-signed webhooks with 5-minute replay window, OTP hashing/expiry — see sections
+above.
+
+### Applied live via Cloudflare API (token `qwen-ops-temp-2026-10-30`, 2026-10-30)
+- Zone `security_header`: HSTS 2y + includeSubDomains + nosniff **enabled at the edge**.
+- New zone transform ruleset (`http_response_headers_transform`, expression `true`):
+  nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy,
+  X-Permitted-Cross-Domain-Policies on every response (SSR + API included).
+- Measured: zone plan **Free**; `security_level` already medium; **Bot Fight Mode was ON** and is
+  the cause of challenged non-browser traffic (webhooks!). Free-plan token API cannot toggle it
+  (405) → single dashboard click remains: Security → Bots → Bot Fight Mode OFF.
+- `tools/cf-fix.mjs` added: idempotent verify/report/zone automation encoding all measured
+  Free-plan API quirks (405 bot_management, 403 firewall-phase rulesets, unnamed transform rules).

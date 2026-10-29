@@ -1,4 +1,9 @@
 {
+  // DEPRECATED 2026-10-30 — kept for reference only.
+  // Current Wrangler hard-errors when `.cloudflare/output` exists (this project builds for the
+  // `cf` CLI), so this config can no longer deploy. Use `npm run deploy` / `npm run deploy:prebuilt`
+  // (`cf deploy [--prebuilt]`) instead. See OPS-RUNBOOK.md part 2.
+  //
   // Deploy config for the vinext build output. Usage: npm run build:vinext && npm run deploy:wrangler
   "name": "sg16finance",
   "main": ".cloudflare/output/v0/workers/default/bundle/index.js",
