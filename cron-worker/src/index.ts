@@ -1,64 +1,47 @@
 /**
- * sg16finance-cron — MODIFIED VERSION
- * 
- * Instead of doing D1 work directly, this Worker now makes HTTP POST
- * requests to https://sg16finance.com/api/cron, which routes through
- * the Cloudflare edge and shows up in zone HTTP traffic analytics.
- *
- * The actual ingest/cleanup logic moves into the sg16finance Worker
- * as an API route (see sg16finance/app/api/cron/route.ts).
- *
- * REQUIREMENTS:
- *   1. Add a CRON_SECRET secret to BOTH Workers (same value)
- *   2. Move ingest.ts logic into the sg16finance Worker project
- *   3. Add the API route handler in sg16finance (see route.ts file)
- *   4. The cron Worker no longer needs the DB binding or FINNHUB_API_KEY
- *      (the sg16finance Worker already has both)
+ * sg16finance-cron: scheduled housekeeping for the shared D1 database.
+ * Runs daily (see wrangler.jsonc). It has no public routes.
  */
 
+import { ingestMinute, pruneHistory, type Env } from "./ingest";
+
+const DAY_MS = 86_400_000;
+
+// Keep expired passes for a short grace period (support / refund questions), then delete.
+const EXPIRED_PASS_GRACE_DAYS = 7;
+const USAGE_RETENTION_DAYS = 60;
+const WEBHOOK_LOG_RETENTION_DAYS = 90;
+
+async function cleanup(env: Env, now = Date.now()) {
+  const cutoff = (days: number) => now - days * DAY_MS;
+  const usageCutoffDay = new Date(cutoff(USAGE_RETENTION_DAYS)).toISOString().slice(0, 10);
+
+  const jobs: Array<[string, D1PreparedStatement]> = [
+    ["access_passes", env.DB.prepare("DELETE FROM access_passes WHERE expires_at < ?").bind(cutoff(EXPIRED_PASS_GRACE_DAYS))],
+    ["login_codes", env.DB.prepare("DELETE FROM login_codes WHERE expires_at < ?").bind(now)],
+    ["pass_usage", env.DB.prepare("DELETE FROM pass_usage WHERE day < ?").bind(usageCutoffDay)],
+    ["dodo_events", env.DB.prepare("DELETE FROM dodo_events WHERE created_at < ?").bind(cutoff(WEBHOOK_LOG_RETENTION_DAYS))],
+  ];
+
+  // Run independently: a table that has not been created yet (they are created lazily) must not block the rest.
+  for (const [table, stmt] of jobs) {
+    try {
+      const res = await stmt.run();
+      console.log(`[cron] ${table}: removed ${res.meta.changes ?? 0} row(s)`);
+    } catch (error) {
+      console.warn(`[cron] ${table}: skipped (${error instanceof Error ? error.message : String(error)})`);
+    }
+  }
+}
+
 export default {
-  async scheduled(controller, env, ctx) {
-    const url = "https://sg16finance.com/api/cron";
-    const headers = {
-      "Content-Type": "application/json",
-      "X-Cron-Secret": env.CRON_SECRET,
-    };
-
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
     switch (controller.cron) {
-      case "* * * * *":
-        // Every minute: trigger market data ingest via HTTP
-        ctx.waitUntil(
-          (async () => {
-            try {
-              const res = await fetch(url, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({ job: "ingest" }),
-              });
-              console.log(`[cron] ingest → HTTP ${res.status}`);
-            } catch (err) {
-              console.error(`[cron] ingest failed: ${err.message}`);
-            }
-          })()
-        );
+      case "* * * * *": // real market data, every minute
+        ctx.waitUntil(ingestMinute(env));
         break;
-
-      default:
-        // 0 3 * * * (daily 3 AM): trigger cleanup + prune via HTTP
-        ctx.waitUntil(
-          (async () => {
-            try {
-              const res = await fetch(url, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({ job: "cleanup" }),
-              });
-              console.log(`[cron] cleanup → HTTP ${res.status}`);
-            } catch (err) {
-              console.error(`[cron] cleanup failed: ${err.message}`);
-            }
-          })()
-        );
+      default: // "0 3 * * *": daily cleanup
+        ctx.waitUntil(Promise.all([cleanup(env), pruneHistory(env)]));
     }
   },
-};
+} satisfies ExportedHandler<Env>;
