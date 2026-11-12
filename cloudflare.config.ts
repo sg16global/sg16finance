@@ -25,7 +25,10 @@ export default defineConfig({
       RL_AUTH: bindings.rateLimit({ namespace: "1003", simple: { limit: 8, period: 60 } }),
       // Workers AI (copilot fallback engine, support first replies)
       AI: bindings.ai(),
-      DB: bindings.d1({ id: "8671a510-3431-41ad-be92-cdcb3faa3f72", name: "sg16finance-db" }),
+      // D1 "sg16finance-db". Bind by id only: the dashboard reports D1 bindings without a name,
+      // so including `name` makes `cf deploy` (strict in Workers Builds) see a destructive config
+      // diff and abort whenever the Worker was last edited in the dashboard (e.g. a secret change).
+      DB: bindings.d1({ id: "8671a510-3431-41ad-be92-cdcb3faa3f72" }),
     },
   }),
 });
