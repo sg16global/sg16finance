@@ -226,3 +226,141 @@ SHA verified inside the built bundle).
 
 **These are git-side fixes only.** Steps that require the Cloudflare dashboard, secret
 rotation, evidence export and user reconciliation are in `RECOVERY-STEPS.md`.
+
+---
+
+## Addendum 2 — dashboard evidence (Parts 1–3, 2026-11-14/15) — CORRECTIONS
+
+Received: 26 GitHub + Cloudflare screenshots and 2 Google Drive log links (Drive is not
+reachable from this sandbox — host blocked). Cloudflare account: `sg16global@gmail.com`,
+account id `3676a09b6ca7c6fb929833cb2e4d69f6`. GitHub API was re-queried to verify.
+
+**This section supersedes the statements it corrects. The timeline of commits and the
+Git history evidence in Sections 1–5 are unchanged.**
+
+### C1 — "no successful deploys / no Cloudflare workflows" was wrong
+After `2ff4d41` deleted `.github/workflows/deploy.yml`, the red `0/1` marks on Oct/Nov
+commits are **`Workers Builds: sg16finance`** checks from the Cloudflare GitHub app, not
+GitHub Actions. Production builds **succeeded twice**:
+
+| UTC | Commit | Build | Version |
+|---|---|---|---|
+| 2026-10-29 20:05 | `f468316` (PR #1 merge) | `3e24899e` ✅ | `c51a17ef-…` |
+| 2026-11-12 23:52 | `dd8b521` (main HEAD) | `f6cba5f3` ✅ | `62c57971-e6fb-48d2-aaa9-8237ccbfaa19` |
+
+Failed Workers Builds: `b88f6f8` (15 Oct), `30e7161` + `6865b9c` (29 Oct), all six
+Nov-12 commits, and our `83e0cb3` / `94f911c` (**preview** deploys only). Build
+`f6cba5f3`'s log shows 49 assets uploaded, D1 `env.DB
+(8671a510-3431-41ad-be92-cdcb3faa3f72)`, `AI`, `RL_ACCESS/CHECKOUT/AUTH`, both custom
+domains deployed, "Current Version ID: 62c57971…", "Deploy complete". **Production
+deploys work; the failing check on PR #2 is a Preview Deployment.**
+
+### C2 — the deploy command is ALREADY correct
+`sg16finance → Settings → Builds` shows: Git `sg16global/sg16finance`, production branch
+`main`, root `/`, build `npm run build:vinext`, deploy
+`npx cf deploy --prebuilt --mode production`, exclude `node_modules/** .git/`, API token
+`Workers Builds - 2026-07-08 05:32`, no build variables. The earlier advice to change it
+was unnecessary. Only the **Previews Base** deploy command is unverified/likely wrong.
+
+### C3 — "live main Worker is a stale deleted Nov-12 build" was wrong
+The main Worker `sg16finance` **is `dd8b521` = current `main`**, deployed successfully at
+23:52 on 12 Nov, version `62c57971` shown **Ready** on its Overview. Therefore:
+- `/api/version` = 404 is **expected**: that route exists only on PR #2, not `main`.
+- Synthetic `lastTick = Date.now() - 15min` is **in `dd8b521` itself** — consistent.
+- Domains: `sg16finance.com` + `www.sg16finance.com` (both Production) and DNS has two
+  proxied `Worker` records pointing at `sg16finance`. So the Git-connected Worker **is**
+  the one serving the site.
+
+### C4 — REFINED ROOT CAUSE: the stale component is the CRON Worker + a zone route
+`sg16finance-cron → Domains` shows exactly **one route: `sg16finance.com/api/cron*`**.
+Its Overview banner: *"sg16finance.com/api/cron* — Automatic deployment on upload — by
+sg16global 1 day ago"*, Deployments show `3dad27d5 … Manually deployed … by sg16global 1d
+ago`, plus `f4868ed0 "Add secret: CRON_SECRET" (Dashboard, 2d ago)`. It has 2 cron
+triggers, D1 `DB`, Logs ON, **1.44k invocations / 24h, 0 errors**.
+
+But HEAD `cron-worker/wrangler.jsonc` defines **no routes**, and HEAD
+`cron-worker/src/index.ts` has **no `fetch` handler at all** — only `scheduled()` calling
+`ingestMinute(env)` straight into D1. The committed Nov-12 experiment (`c2393d6`) instead
+POSTed to `https://sg16finance.com/api/cron` with `X-Cron-Secret` "so it shows up in zone
+HTTP analytics", and `6dcf8dc` added a POST-only Next.js route at
+`src/app/api/cron/route.ts` (whose second argument was wrongly typed as `Env`). Git
+reverted all of it on 13 Nov (`1e7f0fe`, `64f3921`, `646c874`); **the cron Worker and the
+zone route were never redeployed or removed.**
+
+Consequence: the every-minute cron still POSTs to a URL that the leftover route sends back
+to the same stale cron Worker. The fetch failures are caught and logged (hence "0 errors"),
+but **nothing is written to D1** — `updatedAt` froze at `2026-11-12T21:00:52Z`–
+`21:33:52.498Z`, exactly when the experiment was deployed. The live 405
+`{"error":"Method Not Allowed"}` on `GET /api/cron` comes from that leftover route, **not**
+from a stale main Worker. **Fix = delete the route + redeploy the cron Worker from HEAD.**
+
+### C5 — `CRON_SECRET` IS present (earlier advice obsolete)
+`sg16finance → Settings → Variables and secrets` shows `CRON_SECRET`, `DODO_API_KEY`,
+`DODO_ENV`, `DODO_PRODUCT_DAY12/DAYS5/INSTITUT…/VIP/WEEK`, `DODO_WEBHOOK_SECRET`,
+`FINNHUB_API_KEY`, `FINNHUB_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SESSION_SECRET`,
+`TURNSTILE_SECRET`, `TURNSTILE_SITE_KEY`. `sg16finance-cron` shows `CRON_SECRET` +
+`FINNHUB_API_KEY`. Bindings are correct: `AI`, `DB → sg16finance-db`, `RL_ACCESS` (1001),
+`RL_AUTH` (1003), `RL_CHECKOUT` (1002). `CRON_SECRET` is a leftover to **remove after
+evidence preservation**. `AUTH_DEV_LOG_CODE` was not visible in the captured list — the
+list may be scrolled; verify the full list.
+
+### C6 — GitHub Actions secrets empty is now expected and harmless
+Screenshot "This repository has no secrets" + the Oct-14 log line *"No authentication
+token found. Set the `CLOUDFLARE_API_TOKEN` environment variable"* = the exact cause of
+run `38614800773`. Run `38615261647` failed differently: Wrangler 4.151.0 refused
+`.cloudflare/output` ("Please run `cf deploy` instead"). The new CI is verify-only and
+needs no Cloudflare token.
+
+### C7 — `mistralbrain.com` is an internal service, not an exfiltration host
+The account's "Traffic Breakdown by Domain" lists `mistralbrain.com` (29,878 requests,
+served by Worker) alongside `sg16finance.com` (14,888 requests / 880 page views / 339
+threats), `saiftechglobal.com`, `sg16engine.com`, `saifglobal16.info`, `sg16children.com`,
+`sg16identifier.com` — all in the **same Cloudflare account**. So `SG16_BRAIN_URL`'s
+default is a first-party Worker. Privacy copy is still inaccurate, but this is **not**
+evidence of data leaving the account.
+
+### C8 — the "millions vs GitHub traffic" discrepancy is resolved
+GitHub Insights → Traffic: **48 views / 1 unique visitor / 101 clones / 50 unique
+cloners** in 14 days, referring site `github.com` only, popular content all repo paths
+(`/blob/main/cron-worker/...`, `/upload`, `/actions`). These are repo-page visits and
+build clones (largely Workers Builds). Cloudflare counts HTTP requests + D1 row reads on
+the website. Two different counters — they were never meant to match.
+
+### C9 — governance (single-account change trail)
+Repo is **public**, default `main`, **0 direct collaborators** ("Only you can contribute"),
+PR #1 merged with **0 reviews** and **1 check failed**, no required-check gate, all three
+merge methods enabled, auto-merge off. The Nov-12/13 `Verified` badges on "Add files via
+upload" commits show the **single `sg16global` account acting through the GitHub web UI**.
+No outside actor appears in any log supplied. Supports "change-control failure", not
+"locked/stolen project".
+
+### C10 — NEW finding: root domain is spoofable (relevant to email complaints)
+DNS records screenshot shows Cloudflare's own recommendation: *"Block fake emails sent
+from @sg16finance.com addresses — Add a DMARC record"*. Root `sg16finance.com` has an
+inbound SES MX and verification TXTs but **no SPF and no DMARC**; SPF
+`"v=spf1 include:amazonses.com ~all"` is only on `send.sg16finance.com`, DKIM only on
+`resend._domainkey`. Add `_dmarc.sg16finance.com` TXT + root SPF. This can explain fake
+verification emails and should be in the case file.
+
+### Still unverified (do not assert)
+- **"SG 16 Finance Conns"** is not visible in any screenshot. Sidebar recents show
+  `sg16finance`, `sg16finance-cron`, `sg16-brain-apache-2-0`. Need the Workers & Pages
+  overview list / Git "Connections" page.
+- **Bot Fight Mode** current state (no Security → Bots screenshot). The banner says "paid
+  Workers plan" while the zone header shows "free" — do not assume the plan.
+- Active cron Worker version `3dad27d5`'s actual source (`Edit code` view) and Workers
+  Logs showing the POST loop's HTTP status.
+- Full secrets list (scrolled), Cloudflare **Audit Log** export, Dodo/Resend/Finnhub
+  webhook logs, D1 snapshot, and the two Google Drive log archives.
+
+### Revised repair order (supersedes the earlier Step 3/5/7 text)
+0. Export evidence (including cron Worker code, the `/api/cron*` route and Audit Log).
+1. Rotate secrets/tokens; **remove `CRON_SECRET`** from both Workers; add DMARC + SPF.
+2. Merge PR #2 → `main` (production build will succeed; Preview check may stay red).
+3. Fix only the **Previews Base** deploy command to `npx cf previews deploy --prebuilt`.
+4. **Delete the zone route `sg16finance.com/api/cron*`** on `sg16finance-cron`.
+5. Redeploy the cron Worker from HEAD (`npm run deploy:cron`); keep `FINNHUB_API_KEY`.
+6. Verify Bot Fight Mode OFF.
+7. `npm run verify:deploy` → all PASS; `updatedAt` must advance every minute.
+8. Reconcile charged-but-not-granted users from webhook logs.
+9. Branch protection on `main`, monitoring, marketing-copy corrections.

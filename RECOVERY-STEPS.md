@@ -1,12 +1,18 @@
-# SG16 Finance — recovery checklist (2026-11-14)
+# SG16 Finance — recovery checklist (updated 2026-11-15, after dashboard evidence)
 
-**How this works:** everything in **Part A** is already done in git by me and pushed to
-`arena/8cffe4fa-sg16finance`. **Part B** is the part only you can do, because it needs the
-Cloudflare dashboard and the provider accounts. Do the steps **in order** — Step 0 must
-happen before anything is changed.
+**How this works:** **Part A** is already committed and pushed by me on
+`arena/8cffe4fa-sg16finance` (PR #2 → [`sg16global/sg16finance/pull/2`](https://github.com/sg16global/sg16finance/pull/2)).
+**Part B** is the part only you can do — it needs the Cloudflare dashboard and the
+provider accounts. Do the steps **in order**: Step 0 (evidence) must happen before anything
+is changed.
+
+> This version replaces the earlier checklist. Dashboard screenshots proved that the
+> **production deploy command was already correct** and that the **main Worker already
+> matches git `main`**. The broken part is the **cron Worker + a leftover zone route**.
+> See "Addendum 2 — CORRECTIONS" in `FORENSIC-AUDIT-2026-11-14.md`.
 
 Never paste API tokens, secrets or passwords into chat. Put them only in the Cloudflare
-dashboard or in a local `.dev.vars` / `.env.local` (both are gitignored).
+dashboard or in a local `.dev.vars` / `.env.local` (both gitignored).
 
 ---
 
@@ -14,17 +20,40 @@ dashboard or in a local `.dev.vars` / `.env.local` (both are gitignored).
 
 | Change | Why |
 |---|---|
-| `FORENSIC-AUDIT-2026-11-14.md` | Full findings and evidence for your police file. |
+| `FORENSIC-AUDIT-2026-11-14.md` | Findings + Addendum 2 (dashboard evidence and corrections) for your police file. |
 | `RECOVERY-STEPS.md` (this file) | Your checklist. |
-| `src/lib/market.ts` + `/api/quotes` + `/api/dashboard` | Delayed quotes now report the **real** `quote_history` timestamp instead of `Date.now() - 15min`. New `dataAsOf` + `stale` fields so a dead ingest can never be presented as fresh again. |
-| `src/app/api/version/route.ts`, `vite.config.ts`, `src/types/cloudflare-workers.d.ts` | Every build is stamped with its git commit; `/api/version` lets you prove Cloudflare == git. |
-| `tools/verify-deploy.mjs` + `npm run verify:deploy` | One command, no credentials, checks health, build drift, stale cron build, data freshness, Turnstile and edge config. |
-| `cron-worker/tsconfig.json` + root `tsconfig.json` + `package.json` | `npm run typecheck` now passes the app **and** the cron Worker (was 11 errors). |
-| `.github/workflows/ci.yml` | Verify-only CI (lint, typecheck, 25 tests, build). **No deploy**, no Cloudflare tokens in GitHub — so the old red X cannot come back. |
+| `src/lib/market.ts` + `/api/quotes` + `/api/dashboard` | Delayed quotes now report the **real** `quote_history` timestamp instead of `Date.now() - 15min`. New `dataAsOf` + `stale` fields so a dead ingest can never be presented as fresh. |
+| `src/app/api/version/route.ts`, `vite.config.ts`, `src/types/cloudflare-workers.d.ts` | Every build is stamped with its git commit; `/api/version` proves Cloudflare == git. |
+| `tools/verify-deploy.mjs` + `npm run verify:deploy` | Read-only post-deploy check: health, build SHA, stale `/api/cron`, ingest freshness, truthful timestamps, Turnstile, edge config. |
+| `cron-worker/tsconfig.json` + root `tsconfig.json` + `package.json` | `npm run typecheck` passes for app **and** cron Worker (was 11 errors). |
+| `.github/workflows/ci.yml` | Verify-only CI (lint, typecheck, 25 tests, build). **No deploy**, no Cloudflare tokens in GitHub. |
 | `.env.example`, `README.md`, `OPS-RUNBOOK.md` | Complete secret inventory, correct D1 name, Node >= 22.23, verification instructions. |
 
-Verified locally at HEAD: `npm ci` OK, `npm run lint` OK, `npm test` 25/25 OK,
-`npm run typecheck` OK, `npm run build:vinext` OK.
+Verified: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test` 25/25,
+`npm run build:vinext`. PR #2 CI is **green** (`CI / verify (pull_request)` and
+`CI / verify (push)`). The red check on PR #2 is a **Preview Deployment**, not CI.
+
+---
+
+## What the dashboard proved (so you know what NOT to change)
+
+| Item | Actual state (verified 2026-11-15 screenshots) |
+|---|---|
+| `sg16finance` production build | `main`, build `npm run build:vinext`, deploy `npx cf deploy --prebuilt --mode production`, root `/` — **already correct, leave it alone**. |
+| Main Worker version | `62c57971-e6fb-48d2-aaa9-8237ccbfaa19` (build `f6cba5f3`, 12 Nov 23:52 UTC, **Ready**) = commit `dd8b521` = current `main`. |
+| Custom domains | `sg16finance.com` + `www.sg16finance.com` attached to `sg16finance`; DNS has two proxied `Worker` records. |
+| Bindings | `AI`, `DB → sg16finance-db` (`8671a510-3431-41ad-be92-cdcb3faa3f72`), `RL_ACCESS` 1001, `RL_CHECKOUT` 1002, `RL_AUTH` 1003 — all correct. |
+| Secrets | `SESSION_SECRET`, `TURNSTILE_*`, `DODO_*`, `FINNHUB_*`, `RESEND_API_KEY` present. **`CRON_SECRET` is also present** (leftover). |
+| `/api/version` = 404 | **Expected** — that route is only in PR #2, not `main`. Not a fault. |
+| `/api/cron` = 405 | Served by the **cron Worker's route** `sg16finance.com/api/cron*`, not by the main Worker. |
+| `sg16finance-cron` | 2 cron triggers, 1.44k invocations/24h, 0 errors, version `3dad27d5` "Manually deployed" 12/13 Nov, **plus the leftover `/api/cron*` route**. |
+
+**Root cause (final):** the 12 Nov experiment made the cron Worker POST to
+`https://sg16finance.com/api/cron` instead of writing D1 directly, and added a zone route
+for that path. Git reverted the code on 13 Nov, but **the cron Worker and the route were
+never redeployed/removed**. Every minute it still POSTs into a loop that never writes D1 —
+so `updatedAt` has been frozen since `2026-11-12T21:33:52Z`. HEAD's cron Worker has no
+`fetch` handler and no routes at all.
 
 ---
 
@@ -33,66 +62,59 @@ Verified locally at HEAD: `npm ci` OK, `npm run lint` OK, `npm test` 25/25 OK,
 ### STEP 0 — Preserve evidence FIRST (before touching anything)
 Do this today; logs expire.
 
-- [ ] GitHub → Actions → download logs for runs `38614800773`, `38615261647` and the older failed runs (Actions logs are retained ~90 days; October is close).
-- [ ] Cloudflare → **Audit Log** → export 2026-10-09 → 2026-11-14. This is the single most important item for the police report: it shows who deployed/changed secrets/bindings/projects and when.
-- [ ] Cloudflare → Workers & Pages → screenshot **both** project cards including their exact names/IDs (the "SG 16 Finance" and "SG 16 Finance Conns" pages).
-- [ ] Export Workers Builds deployment history + build logs, zone HTTP analytics, D1 metrics, Workers Logs and Security Events for the same period.
+- [ ] GitHub → Actions → download logs for runs `38614800773`, `38615261647` and the older failed runs (retention ~90 days; October is close).
+- [ ] Cloudflare → **Audit Log** → export 2026-10-09 → 2026-11-15. This is the most important item for the police report: who deployed, changed secrets, bindings, routes and projects, and when.
+- [ ] Screenshot **both** project/connection cards with exact names and IDs — including "SG 16 Finance Conns" (not yet seen in any screenshot).
+- [ ] Screenshot/save the **`sg16finance-cron` → Edit code** view (the deployed `3dad27d5` source) and its **Domains → route `sg16finance.com/api/cron*`**. These are the core evidence.
+- [ ] Export Workers Builds deployment history + build logs, Workers Logs (especially the cron Worker's `[cron] ingest → HTTP …` lines), zone HTTP analytics, D1 metrics, and Security Events for the same period.
 - [ ] Take a **D1 backup/snapshot** of `sg16finance-db` before any repair.
-- [ ] Export Dodo Payments, Resend and Finnhub **webhook delivery logs** for 2026-10-09 → 2026-11-14.
+- [ ] Export Dodo Payments, Resend and Finnhub **webhook delivery logs** for 2026-10-09 → 2026-11-15.
 - [ ] Keep `FORENSIC-AUDIT-2026-11-14.md` and this file with the case documents.
 
 ### STEP 1 — Secure the accounts (do this before the developer leaves)
-- [ ] Revoke Cloudflare API tokens, including the one named `qwen-ops-temp-2026-10-30` (PR #1 asked for this on 2026-10-29; it is still referenced in the docs).
-- [ ] Revoke GitHub PATs / deploy keys / SSH keys you do not recognise; remove extra collaborators; enforce 2FA.
-- [ ] **Rotate every Worker secret**: `SESSION_SECRET`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`, `RESEND_API_KEY`, `DODO_API_KEY`, `DODO_WEBHOOK_SECRET`, `FINNHUB_WEBHOOK_SECRET`, `FINNHUB_API_KEY`, `SG16_BRAIN_KEY`, `MISTRAL_API_KEY`. (Rotating `SESSION_SECRET` logs everyone out — fine during maintenance.)
-- [ ] Confirm `AUTH_DEV_LOG_CODE` and `CRON_SECRET` are **NOT** present on any production Worker. `AUTH_DEV_LOG_CODE=1` would print users' login codes into logs.
-- [ ] Confirm you alone control: Cloudflare account, the domain `sg16finance.com`, the GitHub org `sg16global`, and the Dodo / Resend / Finnhub accounts.
-- [ ] Optional but recommended: make the GitHub repo **private** — it is currently public and contains the full security runbook, the D1 UUID and the product IDs.
+- [ ] Cloudflare → **Account API tokens**: list and revoke anything you do not recognise, including `qwen-ops-temp-2026-10-30` (PR #1 asked for this on 29 Oct). Note the token used by Workers Builds is named `Workers Builds - 2026-07-08 05:32` — **rotate it, then re-link it in Settings → Builds** or builds will stop.
+- [ ] Revoke GitHub PATs / deploy keys / SSH keys you do not recognise; enforce 2FA. The repo currently has **0 direct collaborators**, which is good.
+- [ ] **Rotate every Worker secret**: `SESSION_SECRET`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`, `RESEND_API_KEY`, `DODO_API_KEY`, `DODO_WEBHOOK_SECRET`, `DODO_ENV`, `DODO_PRODUCT_*`, `FINNHUB_API_KEY`, `FINNHUB_WEBHOOK_SECRET`, plus any `MISTRAL_API_KEY` / `SG16_BRAIN_*` values. (Rotating `SESSION_SECRET` logs everyone out — fine during maintenance.)
+- [ ] **Remove `CRON_SECRET` from BOTH Workers** — it belongs to the discarded 12 Nov experiment and is currently set.
+- [ ] Confirm `AUTH_DEV_LOG_CODE` is **NOT** set on any production Worker (the captured list may be scrolled — check the full list). If `AUTH_DEV_LOG_CODE=1`, users' login codes are printed into logs.
+- [ ] **Add DNS email protection** (new finding): `_dmarc.sg16finance.com` TXT with a DMARC policy, and an SPF TXT at the root. Cloudflare itself recommends this ("Block fake emails sent from @sg16finance.com addresses"). Root currently has no SPF and no DMARC; only `send.sg16finance.com` has SPF and `resend._domainkey` has DKIM.
+- [ ] Confirm you alone control: the Cloudflare account, `sg16finance.com`, the GitHub org `sg16global`, and the Dodo / Resend / Finnhub accounts.
+- [ ] Optional but recommended: make the GitHub repo **private** — it is public and contains the full runbook, the D1 UUID and the product IDs.
 
 ### STEP 2 — Get these fixes onto the branch Cloudflare builds
-- [ ] Merge **PR #2** → [`sg16global/sg16finance/pull/2`](https://github.com/sg16global/sg16finance/pull/2) (`arena/8cffe4fa-sg16finance` → `main`, commit `83e0cb3`). If you prefer, cherry-pick `83e0cb3` onto `main` yourself.
-- [ ] Note: my session is fixed to the `arena/8cffe4fa-sg16finance` branch, so I cannot push directly to `main`. Merging the PR is the one-click step that makes Workers Builds pick up the fixes.
-- [ ] After merging, GitHub → Actions should show a **green "CI"** check on `main`. That is the new, correct status (the old red X on `a56a784` is historical and will stay there forever — ignore it).
+- [ ] Merge **PR #2** → [`sg16global/sg16finance/pull/2`](https://github.com/sg16global/sg16finance/pull/2) (`arena/8cffe4fa-sg16finance` → `main`). It says "No conflicts … Merging can be performed automatically".
+- [ ] My session is fixed to `arena/8cffe4fa-sg16finance`, so I cannot push directly to `main`. Merging the PR is the one-click step that makes Workers Builds pick up the fixes.
+- [ ] After merging, the **production** build should succeed (as `dd8b521` did) and GitHub Actions should show a green **CI** check. The red `Workers Builds` check on the PR is a **Preview** deployment and is not required for production.
 
-### STEP 3 — Fix the Cloudflare Workers Builds settings (the actual root cause)
-Cloudflare dashboard → **Workers & Pages → sg16finance → Settings → Build**:
+### STEP 3 — Fix ONLY the Preview deploy settings (production is already correct)
+Cloudflare → `sg16finance` → **Settings → Builds → Previews Base**:
 
-| Setting | Exact value |
-|---|---|
-| Production branch | `main` |
-| Root directory | `/` |
-| Build command | `npm run build:vinext` |
-| Deploy command (production) | `npx cf deploy --prebuilt` |
-| Deploy command (preview / non-production) | `npx cf previews deploy --prebuilt` |
-| Node version | `22.23.0` or newer 22.x (>= 22.23, or 24.22+, or 26.12+) |
+- [ ] Set the preview deploy command to `npx cf previews deploy --prebuilt` (production keeps `npx cf deploy --prebuilt --mode production`). This is what makes the red check on PRs go green.
+- [ ] Node version `22.23.0` or newer 22.x (>= 22.23, or 24.22+, or 26.12+). Build log showed `nodejs@24.22.1`, which is fine.
+- [ ] **Never use `wrangler deploy` on this project** while `.cloudflare/output` exists — Wrangler 4.151.0 hard-errors (exact cause of run `38615261647`). The cron Worker is the only component deployed with Wrangler.
+- [ ] If a second Git-connected project ("SG 16 Finance Conns") exists with no deployments, screenshot it, then either point it at `main` with the same settings or **delete it**.
 
-- [ ] **Never use `wrangler deploy` / `wrangler preview` on this project** while `.cloudflare/output` exists — current Wrangler hard-errors and the deploy aborts (this is why the project looked "empty" from 15 Oct to 12 Nov).
-- [ ] If there is a second, Git-connected project ("SG 16 Finance Conns") with no deployments, either point it at `main` with the same settings or **delete it** so it cannot confuse the audit. Screenshot it before deleting.
+### STEP 4 — Bindings/secrets verification (already mostly correct)
+- [ ] D1 `DB` bound **by id only** (`8671a510-3431-41ad-be92-cdcb3faa3f72`) — confirmed, no change needed.
+- [ ] `AI` + `RL_ACCESS` / `RL_CHECKOUT` / `RL_AUTH` — confirmed present.
+- [ ] `SESSION_SECRET`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET` are declared in `cloudflare.config.ts`, so `cf deploy` **fails if any is missing** — keep all three after rotation.
+- [ ] Scroll the full secrets list and compare with `.env.example`; note anything missing (`AUTH_FROM_EMAIL`, `SUPPORT_NOTIFY_EMAIL`, `MISTRAL_API_KEY`, `SG16_BRAIN_*`).
+- [ ] Custom domains `sg16finance.com` / `www.sg16finance.com` — confirmed attached. Disconnect any legacy Pages `dist` project if it still serves traffic.
 
-### STEP 4 — Check the main Worker's bindings and secrets
-Cloudflare → `sg16finance` → Settings → Variables / Bindings:
+### STEP 5 — THE MAIN FIX: remove the stale route and redeploy the cron Worker
+- [ ] Cloudflare → `sg16finance-cron` → **Domains → delete the route `sg16finance.com/api/cron*`**. HEAD's cron Worker has no routes; leaving it means `GET /api/cron` keeps returning 405 forever and the cron POSTs keep looping.
+- [ ] From the repo, inside `cron-worker/`: `npm run deploy:cron` (Wrangler, using `cron-worker/wrangler.jsonc`). Confirm the deployed source calls `ingestMinute(env)` directly and has **no** `fetch()` call to `https://sg16finance.com/api/cron`.
+- [ ] Keep `FINNHUB_API_KEY` on `sg16finance-cron`; **remove `CRON_SECRET`** (Step 1).
+- [ ] Confirm triggers `"* * * * *"` (ingest every minute) and `"0 3 * * *"` (daily cleanup) — already correct in the dashboard.
+- [ ] Watch the cron Worker's **Workers Logs** for a fresh `[cron] ingest` line and then check D1 `quote_history` for a new `ts`.
 
-- [ ] D1 binding `DB` → database id `8671a510-3431-41ad-be92-cdcb3faa3f72`, **bound by id only** (no `name` field — `dd8b521` fixed this; including the name makes `cf deploy` see a destructive diff and abort).
-- [ ] `AI` binding present, and the three rate-limit bindings `RL_ACCESS` (1001), `RL_CHECKOUT` (1002), `RL_AUTH` (1003).
-- [ ] Declared secrets present: `SESSION_SECRET`, `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET`. `cloudflare.config.ts` declares these, so `cf deploy` **fails if any is missing**.
-- [ ] Also set (dashboard-only, not declared): `RESEND_API_KEY`, `DODO_API_KEY`, `DODO_WEBHOOK_SECRET`, `FINNHUB_WEBHOOK_SECRET`, `SUPPORT_NOTIFY_EMAIL`, optional `MISTRAL_API_KEY` / `SG16_BRAIN_KEY`. See `.env.example` for the full list.
-- [ ] Custom domains `sg16finance.com` and `www.sg16finance.com` still attached; disconnect the **legacy Pages `dist` project** if it is still serving traffic (README has warned about it since October).
-
-### STEP 5 — Redeploy the CRON Worker (this is what restores live data)
-- [ ] From the repo, inside `cron-worker/`: `npm run deploy:cron` (i.e. `npx wrangler deploy` using `cron-worker/wrangler.jsonc`).
-- [ ] Ensure `FINNHUB_API_KEY` is set on `sg16finance-cron` (the main Worker does not need it).
-- [ ] Confirm triggers are `"* * * * *"` (ingest every minute) and `"0 3 * * *"` (daily cleanup).
-- [ ] Confirm the deployed source is the **direct-D1 version** (`cron-worker/src/index.ts` calling `ingestMinute`), NOT the 12 Nov HTTP-POST experiment that called `/api/cron`.
-- [ ] Do **not** set `CRON_SECRET` anywhere; it belongs to the discarded experiment.
-
-### STEP 6 — Turn off the challenge that blocks webhooks
-- [ ] Cloudflare zone `sg16finance.com` → **Security → Bots → Bot Fight Mode: OFF**. `OPS-RUNBOOK.md` measured it challenging *all* traffic including Dodo/Finnhub webhook POSTs on the Free plan.
-- [ ] Keep Security Level = Medium. The app already does Turnstile, per-IP rate limits and HMAC webhook verification.
-- [ ] Check `curl -sI https://sg16finance.com/api/health` → **200**, with **no** `cf-mitigated` header.
+### STEP 6 — Verify Bot Fight Mode (state still unknown)
+- [ ] Cloudflare zone `sg16finance.com` → **Security → Bots** → screenshot the current state. If **Bot Fight Mode is ON, turn it OFF**. `OPS-RUNBOOK.md` recorded it challenging all traffic including Dodo/Finnhub webhook POSTs.
+- [ ] `curl -sI https://sg16finance.com/api/health` → **200**, with **no** `cf-mitigated` header.
 
 ### STEP 7 — Deploy, then verify
-- [ ] In Workers Builds press **Retry deployment** on the latest build (or push an empty commit to `main`).
-- [ ] Wait for the deploy to finish, then on your machine:
+- [ ] Merge PR #2 (Step 2) triggers the production build automatically; do **not** press "Retry" on old failed builds.
+- [ ] On your machine:
 
 ```bash
 git checkout main && git pull
@@ -100,34 +122,41 @@ npm ci
 npm run verify:deploy
 ```
 
-Expected: `PASS health / D1 binding`, `PASS build identity` (deployed SHA == your local SHA),
-`PASS stale /api/cron build gone`, `PASS market-data ingest`, `PASS truthful quote timestamps`,
-`PASS API stale flag`, `PASS Turnstile / sign-in config`.
+Expected: `PASS health / D1 binding`, `PASS build identity` (deployed SHA == local SHA),
+`PASS stale /api/cron build`, `PASS market-data ingest`, `PASS truthful quote timestamps`,
+`PASS API stale flag`, `PASS Turnstile / sign-in config`, `PASS static edge config`.
 
-- [ ] If `build identity` shows a mismatch → Cloudflare is still serving an old build; retry the deploy.
-- [ ] If `/api/cron` is still 405 → the 12 Nov build is still live; force a fresh deploy.
-- [ ] If `market-data ingest` FAILs → the cron Worker is not writing D1; check its logs and `FINNHUB_API_KEY`.
-- [ ] After ~2 minutes, re-check `/api/dashboard`: `updatedAt` should advance every minute and `stale` should be `false`.
+- [ ] If `build identity` WARNs → `/api/version` missing means PR #2 did not deploy; retry the build.
+- [ ] If `/api/cron` is still 405 → **the route was not deleted** (Step 5), not an old build.
+- [ ] If `market-data ingest` FAILs → cron Worker still not writing D1; check its logs, `FINNHUB_API_KEY` and the route.
+- [ ] After ~2 minutes `/api/dashboard` should show `updatedAt` advancing and `stale: false`.
 
 ### STEP 8 — Make the affected users whole (important for the police file)
-- [ ] From the Dodo webhook logs you exported, list payments between 2026-10-15 and 2026-11-14 whose webhook was challenged/failed.
+- [ ] From the Dodo webhook logs you exported, list payments 2026-10-15 → 2026-11-15 whose webhook was challenged/failed.
 - [ ] Compare with `access_passes` in D1. For anyone charged but not granted a pass: restore the pass manually or refund. Keep the reconciliation table as evidence.
-- [ ] Re-send/reset email-verification for anyone locked out; check Resend delivery failures.
-- [ ] Publish a short status note to users explaining the stale market data and the fix.
-- [ ] Give your lawyer / the police: `FORENSIC-AUDIT-2026-11-14.md`, the git log, the Cloudflare Audit Log export, the deploy logs, and this reconciliation table. The audit found **no evidence of hacking or data theft** — it documents a change-control failure — so the report should help clarify what actually happened.
+- [ ] Re-send/reset email verification for anyone locked out; check Resend delivery failures. The missing root DMARC/SPF is relevant here.
+- [ ] Publish a short status note explaining the stale market data and the fix.
+- [ ] Give your lawyer / the police: `FORENSIC-AUDIT-2026-11-14.md` (including Addendum 2), the git log, Cloudflare Audit Log, build/cron logs, DNS screenshot and the reconciliation table. The audit found **no evidence of hacking or data theft** — it documents a change-control failure by a single account.
 
 ### STEP 9 — Stop it recurring
-- [ ] Enable **Workers Logs** + zone Security Events email alerts.
-- [ ] Enable **D1 backups** and alert on `stale: true` from `/api/quotes` (a 5-minute external monitor is enough).
-- [ ] Require pull requests for `main`; no more "Add files via upload" straight to production.
+- [ ] **Branch protection on `main`**: require a pull request and require the green `CI` check. PR #1 was merged with 0 reviews and a failing check; the Nov-12/13 "Add files via upload" commits went straight to production.
+- [ ] Enable Workers Logs + zone Security Events alerts; alert on `stale: true` from `/api/quotes`.
+- [ ] Enable D1 backups.
 - [ ] After every deploy, run `npm run verify:deploy` and keep its output.
-- [ ] Have counsel correct the public claims in `src/app/privacy/page.tsx`, `src/app/premium/page.tsx`, `src/app/about/page.tsx` and the hard-coded prices in `src/components/LiveTickerBar.tsx` (see Section 6 of the audit). Those pages currently claim PostgreSQL, SOC-2, sub-second/FIX feeds and GDPR/CCPA compliance that the system does not provide.
+- [ ] Have counsel correct the public claims in `src/app/privacy/page.tsx`, `src/app/premium/page.tsx`, `src/app/about/page.tsx` and the hard-coded prices in `src/components/LiveTickerBar.tsx` (Section 6 of the audit). Note Addendum 2 C7: `mistralbrain.com` is your own Worker in the same account, not a third party — but the privacy copy still misdescribes the system.
 
 ---
 
-## If you want me to continue
+## Still needed from you (Part 4)
 
-Connect the Cloudflare account in Arena, or attach the exported Audit Log / Workers Builds
-logs / D1 snapshot, and I can verify the second project, the exact failed deploys and the
-webhook losses. I can also implement the front-end "stale data" banner and the marketing-copy
-corrections as a follow-up commit on this same branch.
+1. **Workers & Pages overview** showing *all* projects/connections — we still have not seen "SG 16 Finance Conns".
+2. `sg16finance` → Settings → Builds → **Previews Base** tab (the preview deploy command).
+3. `sg16finance-cron` → **Edit code** (deployed source) + its **Workers Logs** showing the HTTP status of the ingest POSTs.
+4. Zone → **Security → Bots** (Bot Fight Mode state) and **Account API tokens** list (names only).
+5. Full secrets lists scrolled to the bottom of both Workers (names only, never values).
+6. Cloudflare **Audit Log** export; Dodo/Resend/Finnhub webhook logs; D1 snapshot.
+7. The two Google Drive log archives — Drive is blocked from this sandbox, so please unzip and attach the `.txt`/`.log` files, paste the last 30 lines, or put them in a private GitHub Gist and send the Gist ID.
+
+Attach any of these here and I'll confirm them one by one. I can also implement the
+front-end "stale data" banner and the marketing-copy corrections as a follow-up commit on
+`arena/8cffe4fa-sg16finance`.

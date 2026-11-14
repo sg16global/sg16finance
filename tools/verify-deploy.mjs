@@ -7,7 +7,7 @@
  * Catches the exact November 2026 failure modes:
  *   - Worker down / D1 binding missing           -> /api/health
  *   - Cloudflare serving a build that isn't in git -> /api/version vs local HEAD
- *   - stale Nov-12 "/api/cron" build still live  -> /api/cron must be 404
+ *   - leftover /api/cron* zone route on cron Worker -> /api/cron must be 404
  *   - market-data ingest dead                   -> dataAsOf / updatedAt age
  *   - synthetic "15 minutes ago" timestamps      -> lastTick newer than dataAsOf
  *   - auth/webhook config missing                -> /api/auth/config, /robots.txt
@@ -69,12 +69,13 @@ try {
     report("WARN", "build identity", `no /api/version (${version.status}) — old build`);
   }
 
-  // 3. The deleted Nov-12 cron route must be gone
+  // 3. The leftover Nov-12 zone route sg16finance.com/api/cron* must be gone.
+  // It is bound to the CRON Worker (not the app), so fix = delete route + redeploy cron.
   const cron = await get("/api/cron");
   if (cron.status === 405 || /Method Not Allowed/.test(cron.text)) {
-    report("FAIL", "stale /api/cron build", "route still deployed — redeploy current git HEAD");
+    report("FAIL", "stale /api/cron route", "405 — delete the /api/cron* route on sg16finance-cron and redeploy it");
   } else {
-    report("PASS", "stale /api/cron build", `gone (${cron.status})`);
+    report("PASS", "stale /api/cron route", `gone (${cron.status})`);
   }
 
   // 4. Auth config
