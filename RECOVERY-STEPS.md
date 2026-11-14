@@ -78,6 +78,7 @@ Do this today; logs expire.
 - [ ] **Remove `CRON_SECRET` from BOTH Workers** — it belongs to the discarded 12 Nov experiment and is currently set.
 - [ ] Confirm `AUTH_DEV_LOG_CODE` is **NOT** set on any production Worker (the captured list may be scrolled — check the full list). If `AUTH_DEV_LOG_CODE=1`, users' login codes are printed into logs.
 - [ ] **Add DNS email protection** (new finding): `_dmarc.sg16finance.com` TXT with a DMARC policy, and an SPF TXT at the root. Cloudflare itself recommends this ("Block fake emails sent from @sg16finance.com addresses"). Root currently has no SPF and no DMARC; only `send.sg16finance.com` has SPF and `resend._domainkey` has DKIM.
+- [ ] **Scope down the GitHub App (Addendum 4, G1)** — AFTER the Audit Log export: GitHub → Settings → Applications → "Cloudflare Workers and Pages" → change **"All repositories"** to **"Only select repositories"** and select only the repos that actually use Workers Builds: `sg16finance`, `sg16-ai-engine`, `SG16-Brain-Apache2.0-`, `SG16-IDENTIFIER-ROBO`, `saiftechglobal-website`, `sg16children-website`, `saifglobal-geopolitical-monitor`. The app currently has **read+write administration, checks, code, deployments and pull requests on all 17 repos**. Do **NOT** click *Suspend* or *Uninstall* — that stops all deploys and destroys evidence. Do not save any change before Step 0 is finished.
 - [ ] Confirm you alone control: the Cloudflare account, `sg16finance.com`, the GitHub org `sg16global`, and the Dodo / Resend / Finnhub accounts.
 - [ ] Optional but recommended: make the GitHub repo **private** — it is public and contains the full runbook, the D1 UUID and the product IDs.
 
@@ -147,18 +148,22 @@ Expected: `PASS health / D1 binding`, `PASS build identity` (deployed SHA == loc
 
 ---
 
-## Still needed from you (Part 5)
+## Still needed from you (Part 6)
 
-Part 4 is done: the full **17-project** Workers & Pages inventory is recorded in
-`FORENSIC-AUDIT-2026-11-14.md` → Addendum 3. There is **no** project or GitHub repo named
-"SG 16 Finance Conns" in this account; the two finance cards are `sg16finance` and
-`sg16finance-cron`.
+Part 4 is done: the full **17-project** Workers & Pages inventory is in Addendum 3. There is
+**no** project or GitHub repo named "SG 16 Finance Conns" in this account; the two finance
+cards are `sg16finance` and `sg16finance-cron`.
 
-1. **The exact screen where you saw "SG 16 Finance Conns"** — screenshot it with the page
-   title/URL bar visible. Then check: the **account switcher** (top-left, next to
-   `Sg16global@gmail.com`) for a second Cloudflare account; `sg16finance → Settings →
-   Builds → Git repository → Manage` (Connections); and GitHub → Settings → Applications
-   → the Cloudflare Workers and Pages GitHub App installation.
+Part 5 is done: GitHub → Settings → Applications shows the **"Cloudflare Workers and Pages"
+GitHub App** installed 5 months ago with read+write administration/checks/code/deployments/PRs
+on **all 17 repositories** (Addendum 4). This account-wide app is the likely "Conns"
+(connection) and explains why deploys appear as check runs with no GitHub Actions workflow.
+
+1. **Cloudflare → `sg16finance` → Settings → Builds → Git repository → Manage / Connections**
+   — one screenshot, with the page title visible. This is the last place the name
+   "SG 16 Finance Conns" could appear. Also check the **account switcher** (top-left, next
+   to `Sg16global@gmail.com`) for a second Cloudflare account. If neither shows it, we'll
+   record it as the GitHub App connection label and stop chasing it.
 2. `sg16finance` → Settings → Builds → **Previews Base** tab (the preview deploy command).
 3. `sg16finance-cron` → **Edit code** (deployed source) + its **Workers Logs** showing the HTTP status of the ingest POSTs.
 4. Zone → **Security → Bots** (Bot Fight Mode state) and **Account API tokens** list (names only).

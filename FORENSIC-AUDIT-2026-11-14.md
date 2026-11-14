@@ -436,3 +436,66 @@ Exact screen showing "SG 16 Finance Conns"; Cloudflare Audit Log; Previews Base 
 command; cron Worker `Edit code` source + Workers Logs; Security → Bots state; Account API
 tokens list; full secrets lists; Dodo/Resend/Finnhub webhook logs; D1 snapshot; the two
 Google Drive log archives.
+
+---
+
+## Addendum 4 — the GitHub App "connection" (Part 5, 2026-11-15)
+
+Two screenshots: GitHub → **Settings → Applications → Cloudflare Workers and Pages**, on the
+personal account `sg16global`.
+
+| Item | Observed |
+|---|---|
+| App | "Cloudflare Workers and Pages", developed by **Cloudflare** (`developers.cloudflare.com/workers/ci/cd/build/`) |
+| Installed | **5 months ago** (≈ June 2026) — predates the 9–15 Oct bulk import and the 12 Nov experiment |
+| Description | Auto-deploys code to Cloudflare on merge; can create a repo from a Cloudflare template; **displays deployment status as check runs**; posts preview-URL comments on PRs (Pages only) |
+| Permissions | ✅ Read metadata; ✅ **Read + write: administration, checks, code, deployments, pull requests** |
+| Repository access | 🔵 **"All repositories"** — "applies to all current and future repositories owned by the resource owner" (17 repos at this time); "Only select repositories" NOT selected |
+| Danger zone | "Suspend" / "Uninstall" buttons present, **not clicked** |
+
+The embedded *"All checks have passed — Cloudflare Pages: monorepo-test-project-a / -b"*
+widget is **Cloudflare's documentation illustration**, not checks on this account.
+
+**API verification limit:** our sandbox token is a GitHub App installation token for
+`arena-ai-coding-agent`. `GET repos/sg16global/sg16finance/installation` returned
+**401 "A JSON web token could not be decoded"**, and `GET user/installations` lists only our
+own app. So the Cloudflare installation cannot be independently read via API from here —
+the screenshots are the source of truth. The check-run records with
+`app.slug = cloudflare-workers-and-pages` (Addendum 2 C1) independently confirm the app is
+active and posts checks.
+
+### What this resolves
+
+- Explains the `Workers Builds: sg16finance` `0/1` marks and the "Deploying Preview to
+  Cloudflare" bot comments on PRs #1/#2 **with no GitHub Actions workflow** (C1).
+- Confirms deploys are driven by an **account-wide GitHub App**, not a per-project webhook
+  or a GitHub Actions secret — which is exactly why GitHub Actions secrets are empty (C6)
+  and why the 14 Oct `cf deploy` reported "No authentication token found".
+- **"SG 16 Finance Conns" is most plausibly this connection**, not a project: Cloudflare's
+  Workers Builds → Git repository → **Manage / Connections** page names the GitHub App link
+  to the `sg16finance` repo. No project or repo carries that exact name (Addendum 3). The
+  exact display name still needs that one Cloudflare screen.
+
+### G1 — new hardening finding (not evidence of misuse)
+
+The app holds **write administration + code + deployments + pull requests on all 17 repos**,
+including unrelated ones. This is the standard permission set for Cloudflare's Workers and
+Pages app, and **there is no evidence it was abused**. But combined with C9 (public repo,
+0 collaborators, no branch protection, PR #1 merged with 0 reviews and a failing check,
+"Add files via upload" straight to `main`), it means the account's change control is weak:
+anyone controlling the Cloudflare side of this connection could create check runs, comment
+on PRs and change repository settings across the whole account.
+
+**Action (Step 1, AFTER the Audit Log export):** switch to **"Only select repositories"**
+and include only the repos that actually use Workers Builds (Addendum 3):
+`sg16finance`, `sg16-ai-engine`, `SG16-Brain-Apache2.0-`, `SG16-IDENTIFIER-ROBO`,
+`saiftechglobal-website`, `sg16children-website`, `saifglobal-geopolitical-monitor`.
+Do **NOT** click *Suspend* or *Uninstall* — that stops all deploys and destroys connection
+evidence. Do **NOT** save any change before Step 0 is complete.
+
+### Evidence still outstanding
+Exact "SG 16 Finance Conns" label (Cloudflare Builds → Manage); Cloudflare Audit Log;
+Previews Base deploy command; cron Worker `Edit code` source + Workers Logs; Security →
+Bots state; Account API tokens list; full secrets lists; Dodo/Resend/Finnhub webhook logs
+for **both** `sg16finance.com` and `payments.saiftechglobal.com`; D1 snapshot; the two
+Google Drive log archives.
