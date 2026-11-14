@@ -499,3 +499,54 @@ Previews Base deploy command; cron Worker `Edit code` source + Workers Logs; Sec
 Bots state; Account API tokens list; full secrets lists; Dodo/Resend/Finnhub webhook logs
 for **both** `sg16finance.com` and `payments.saiftechglobal.com`; D1 snapshot; the two
 Google Drive log archives.
+
+---
+
+## Addendum 5 — "Conns" resolved; evidence closed (2026-11-15)
+
+The owner clicked **Workers & Pages → `sg16finance` → Settings → Builds → Git repository →
+Manage** and it opened **exactly the GitHub App installation page already captured in Part
+5**: `https://github.com/settings/installations/138713841` ("Cloudflare Workers and
+Pages"). The owner confirmed there is **no separate Cloudflare Connections page and no
+second project**.
+
+### Final answer to the original "two pages" question
+- **"SG 16 Finance"** = the Worker `sg16finance` (Git-connected, `sg16finance.com`, 759
+  requests/24h, production version `62c57971…` = commit `dd8b521`).
+- **"SG 16 Finance Conns"** = the **Git connection** to that Worker — GitHub App
+  installation **138713841** (`cloudflare-workers-and-pages`), which has read+write
+  administration/checks/code/deployments/PRs on all 17 repos (Addendum 4). It is a
+  connection label, not a project, which is why it looked empty and had no deployments.
+- The **only other finance-named Worker** is `sg16finance-cron` — no Git connection,
+  manually deployed, route `sg16finance.com/api/cron*`, ~1.5k requests/24h. It is the
+  source of the broken ingest (Addenda 2/3).
+- **No project, repo, or dashboard page was "locked".** The Oct 9–15 window is a collapsed
+  bulk import; the `/api/cron*` route is an ordinary Cloudflare route; the account id and
+  build URLs are visible in the check-run metadata. GitHub shows 0 collaborators and
+  `Verified` web-UI uploads by the single `sg16global` account.
+
+### Evidence status: CLOSED by the owner on 2026-11-15
+The owner declared all evidence complete and asked to proceed to the repair. The following
+were **not** supplied and are therefore **explicitly out of scope**, not missing by
+oversight: Cloudflare Audit Log export, cron Worker `Edit code` source, cron Workers Logs,
+Security → Bots state, Account API tokens list, full secrets lists, Dodo/Resend/Finnhub
+webhook delivery logs, D1 snapshot, and the two Google Drive log archives (host blocked
+from this sandbox). **No claim is made about Audit Log actors or webhook delivery outcomes.**
+
+Everything asserted above is grounded in: the full git DAG and GitHub API (commits,
+check-runs, PRs, workflows, branches, repo settings), read-only live HTTP probes of
+`sg16finance.com`, and the 32 owner-supplied screenshots. The conclusion remains a
+**change-control / deployment incident, with no evidence of hacking or data theft**.
+
+### Repair phase — order of operations
+1. Owner: rotate secrets/tokens, remove `CRON_SECRET` from both Workers, add DMARC + root
+   SPF, scope GitHub App installation 138713841 to the 7 Workers-Builds repos.
+2. Agent: merge PR #2 → `main` (production build is expected to succeed; the Preview check
+   is not a production gate).
+3. Owner: set the **Previews Base** deploy command to `npx cf previews deploy --prebuilt`.
+4. Owner: **delete the route `sg16finance.com/api/cron*`** on `sg16finance-cron`, then
+   `npm run deploy:cron` from the repo root (HEAD's direct-D1 `scheduled()` handler).
+5. Owner: verify Bot Fight Mode OFF.
+6. Owner: `git checkout main && git pull && npm ci && npm run verify:deploy` → all PASS.
+7. Owner: reconcile paid users from Dodo logs on **both** `sg16finance.com` and
+   `payments.saiftechglobal.com`; enable branch protection on `main` and monitoring.

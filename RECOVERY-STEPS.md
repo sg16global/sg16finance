@@ -1,10 +1,15 @@
 # SG16 Finance — recovery checklist (updated 2026-11-15, after dashboard evidence)
 
-**How this works:** **Part A** is already committed and pushed by me on
-`arena/8cffe4fa-sg16finance` (PR #2 → [`sg16global/sg16finance/pull/2`](https://github.com/sg16global/sg16finance/pull/2)).
-**Part B** is the part only you can do — it needs the Cloudflare dashboard and the
-provider accounts. Do the steps **in order**: Step 0 (evidence) must happen before anything
-is changed.
+**STATUS (2026-11-15): EVIDENCE CLOSED — REPAIR PHASE ACTIVE.** The owner confirmed that
+Cloudflare's "Manage" button opens GitHub App installation
+[`138713841`](https://github.com/settings/installations/138713841) — there is **no second
+project and no separate Connections page**. "SG 16 Finance Conns" is that Git connection.
+See Addendum 5 of `FORENSIC-AUDIT-2026-11-14.md`.
+
+**Part A** is committed and pushed by me on `arena/8cffe4fa-sg16finance`
+(PR #2 → [`sg16global/sg16finance/pull/2`](https://github.com/sg16global/sg16finance/pull/2)).
+**Part B** needs the Cloudflare dashboard and the provider accounts. Do the steps **in
+order**.
 
 > This version replaces the earlier checklist. Dashboard screenshots proved that the
 > **production deploy command was already correct** and that the **main Worker already
@@ -13,6 +18,24 @@ is changed.
 
 Never paste API tokens, secrets or passwords into chat. Put them only in the Cloudflare
 dashboard or in a local `.dev.vars` / `.env.local` (both gitignored).
+
+---
+
+## ⚡ DO NOW — exact order (repair phase)
+
+| # | Who | Action |
+|---|---|---|
+| **1** | **YOU** | Rotate all Worker secrets + Cloudflare/GitHub tokens; **delete `CRON_SECRET` on both Workers**; add `_dmarc.sg16finance.com` TXT + root SPF; scope GitHub App installation `138713841` to the 7 Workers-Builds repos (Step 1). Do **not** Suspend/Uninstall the app. |
+| **2** | **ME** | Merge **PR #2 → `main`**. Done on this turn — see the merge commit in the PR. Production build expected to succeed; wait for it in Cloudflare → `sg16finance` → Deployments. |
+| **3** | **YOU** | `sg16finance` → Settings → Builds → **Previews Base** → deploy command `npx cf previews deploy --prebuilt` (Step 3). |
+| **4** | **YOU — THE MAIN FIX** | `sg16finance-cron` → Domains → **delete route `sg16finance.com/api/cron*`**. Then from the repo root run `npm run deploy:cron` (Step 5). |
+| **5** | **YOU** | Zone → Security → Bots → **Bot Fight Mode OFF** (Step 6). |
+| **6** | **YOU** | `git checkout main && git pull && npm ci && npm run verify:deploy` → all PASS; `/api/dashboard` `updatedAt` must advance every minute (Step 7). |
+| **7** | **YOU** | Reconcile charged-but-not-granted users from Dodo logs on **both** `sg16finance.com` and `payments.saiftechglobal.com`; enable branch protection on `main` + monitoring (Steps 8–9). |
+
+**If only one thing gets done today, make it #4** — deleting that route and redeploying the
+cron Worker is what restores live market data. #2 alone makes the site *honest* about stale
+data (`stale: true`, real timestamps) but does not restart the ingest.
 
 ---
 
@@ -59,7 +82,17 @@ so `updatedAt` has been frozen since `2026-11-12T21:33:52Z`. HEAD's cron Worker 
 
 ## Part B — your steps
 
-### STEP 0 — Preserve evidence FIRST (before touching anything)
+### ✅ STEP 0 — Evidence (CLOSED 2026-11-15)
+The owner confirmed all evidence is complete: 32 screenshots (git history, Actions logs,
+Traffic, PRs, settings, DNS, Workers Builds, bindings/secrets, cron Worker, all 17 projects,
+GitHub App installation `138713841`), plus the full git DAG and GitHub API records. No
+second project exists. Optional items that were deliberately not supplied (Audit Log export,
+cron source/logs, Bot Fight Mode state, token list, webhook logs, D1 snapshot, Drive zips)
+are recorded as out of scope in Addendum 5; they can still be exported later without
+blocking the repair.
+
+<details>
+<summary>Original Step 0 checklist (kept for the case file)</summary>
 Do this today; logs expire.
 
 - [ ] GitHub → Actions → download logs for runs `38614800773`, `38615261647` and the older failed runs (retention ~90 days; October is close).
@@ -70,6 +103,8 @@ Do this today; logs expire.
 - [ ] Take a **D1 backup/snapshot** of `sg16finance-db` before any repair.
 - [ ] Export Dodo Payments, Resend and Finnhub **webhook delivery logs** for 2026-10-09 → 2026-11-15.
 - [ ] Keep `FORENSIC-AUDIT-2026-11-14.md` and this file with the case documents.
+
+</details>
 
 ### STEP 1 — Secure the accounts (do this before the developer leaves)
 - [ ] Cloudflare → **Account API tokens**: list and revoke anything you do not recognise, including `qwen-ops-temp-2026-10-30` (PR #1 asked for this on 29 Oct). Note the token used by Workers Builds is named `Workers Builds - 2026-07-08 05:32` — **rotate it, then re-link it in Settings → Builds** or builds will stop.
@@ -148,29 +183,20 @@ Expected: `PASS health / D1 binding`, `PASS build identity` (deployed SHA == loc
 
 ---
 
-## Still needed from you (Part 6)
+## Evidence status — CLOSED (2026-11-15)
 
-Part 4 is done: the full **17-project** Workers & Pages inventory is in Addendum 3. There is
-**no** project or GitHub repo named "SG 16 Finance Conns" in this account; the two finance
-cards are `sg16finance` and `sg16finance-cron`.
+The "SG 16 Finance Conns" question is answered: Cloudflare's **Manage** button opens
+GitHub App installation [`138713841`](https://github.com/settings/installations/138713841)
+— the same page captured in Part 5. There is **no second project** and no separate
+Connections page. Full findings: Addenda 3–5 in `FORENSIC-AUDIT-2026-11-14.md`.
 
-Part 5 is done: GitHub → Settings → Applications shows the **"Cloudflare Workers and Pages"
-GitHub App** installed 5 months ago with read+write administration/checks/code/deployments/PRs
-on **all 17 repositories** (Addendum 4). This account-wide app is the likely "Conns"
-(connection) and explains why deploys appear as check runs with no GitHub Actions workflow.
+**Optional, non-blocking** (can be collected later for the case file): Cloudflare Audit Log
+export, cron Worker `Edit code` source + Workers Logs, Security → Bots state, Account API
+tokens list, full secrets lists, Dodo/Resend/Finnhub webhook logs for **both**
+`sg16finance.com` and `payments.saiftechglobal.com`, D1 snapshot, and the two Google Drive
+archives (Drive is blocked here — attach the unzipped `.log`/`.txt` files or use a private
+GitHub Gist).
 
-1. **Cloudflare → `sg16finance` → Settings → Builds → Git repository → Manage / Connections**
-   — one screenshot, with the page title visible. This is the last place the name
-   "SG 16 Finance Conns" could appear. Also check the **account switcher** (top-left, next
-   to `Sg16global@gmail.com`) for a second Cloudflare account. If neither shows it, we'll
-   record it as the GitHub App connection label and stop chasing it.
-2. `sg16finance` → Settings → Builds → **Previews Base** tab (the preview deploy command).
-3. `sg16finance-cron` → **Edit code** (deployed source) + its **Workers Logs** showing the HTTP status of the ingest POSTs.
-4. Zone → **Security → Bots** (Bot Fight Mode state) and **Account API tokens** list (names only).
-5. Full secrets lists scrolled to the bottom of both Workers (names only, never values).
-6. Cloudflare **Audit Log** export (2026-10-09 → 2026-11-15); Dodo/Resend/Finnhub webhook logs for **both** domains; D1 snapshot.
-7. The two Google Drive log archives — Drive is blocked from this sandbox, so please unzip and attach the `.txt`/`.log` files, paste the last 30 lines, or put them in a private GitHub Gist and send the Gist ID.
-
-Attach any of these here and I'll confirm them one by one. I can also implement the
-front-end "stale data" banner and the marketing-copy corrections as a follow-up commit on
-`arena/8cffe4fa-sg16finance`.
+If you want, I can still implement the front-end "stale data" banner and the marketing-copy
+corrections as a follow-up commit — but that would need a **new PR** because PR #2 is now
+merged. Say the word.
