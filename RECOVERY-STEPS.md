@@ -132,7 +132,7 @@ Expected: `PASS health / D1 binding`, `PASS build identity` (deployed SHA == loc
 - [ ] After ~2 minutes `/api/dashboard` should show `updatedAt` advancing and `stale: false`.
 
 ### STEP 8 — Make the affected users whole (important for the police file)
-- [ ] From the Dodo webhook logs you exported, list payments 2026-10-15 → 2026-11-15 whose webhook was challenged/failed.
+- [ ] From the Dodo webhook logs you exported, list payments 2026-10-15 → 2026-11-15 whose webhook was challenged/failed. **Collect logs from both `sg16finance.com/api/webhooks/dodo` and `payments.saiftechglobal.com`** — the account has a separate `dodo-payments-gateway` Worker (Addendum 3), so Bot Fight Mode on the main zone is not the only possible cause. Also check the webhook URL configured in the Dodo dashboard.
 - [ ] Compare with `access_passes` in D1. For anyone charged but not granted a pass: restore the pass manually or refund. Keep the reconciliation table as evidence.
 - [ ] Re-send/reset email verification for anyone locked out; check Resend delivery failures. The missing root DMARC/SPF is relevant here.
 - [ ] Publish a short status note explaining the stale market data and the fix.
@@ -147,14 +147,23 @@ Expected: `PASS health / D1 binding`, `PASS build identity` (deployed SHA == loc
 
 ---
 
-## Still needed from you (Part 4)
+## Still needed from you (Part 5)
 
-1. **Workers & Pages overview** showing *all* projects/connections — we still have not seen "SG 16 Finance Conns".
+Part 4 is done: the full **17-project** Workers & Pages inventory is recorded in
+`FORENSIC-AUDIT-2026-11-14.md` → Addendum 3. There is **no** project or GitHub repo named
+"SG 16 Finance Conns" in this account; the two finance cards are `sg16finance` and
+`sg16finance-cron`.
+
+1. **The exact screen where you saw "SG 16 Finance Conns"** — screenshot it with the page
+   title/URL bar visible. Then check: the **account switcher** (top-left, next to
+   `Sg16global@gmail.com`) for a second Cloudflare account; `sg16finance → Settings →
+   Builds → Git repository → Manage` (Connections); and GitHub → Settings → Applications
+   → the Cloudflare Workers and Pages GitHub App installation.
 2. `sg16finance` → Settings → Builds → **Previews Base** tab (the preview deploy command).
 3. `sg16finance-cron` → **Edit code** (deployed source) + its **Workers Logs** showing the HTTP status of the ingest POSTs.
 4. Zone → **Security → Bots** (Bot Fight Mode state) and **Account API tokens** list (names only).
 5. Full secrets lists scrolled to the bottom of both Workers (names only, never values).
-6. Cloudflare **Audit Log** export; Dodo/Resend/Finnhub webhook logs; D1 snapshot.
+6. Cloudflare **Audit Log** export (2026-10-09 → 2026-11-15); Dodo/Resend/Finnhub webhook logs for **both** domains; D1 snapshot.
 7. The two Google Drive log archives — Drive is blocked from this sandbox, so please unzip and attach the `.txt`/`.log` files, paste the last 30 lines, or put them in a private GitHub Gist and send the Gist ID.
 
 Attach any of these here and I'll confirm them one by one. I can also implement the

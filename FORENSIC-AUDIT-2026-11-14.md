@@ -364,3 +364,75 @@ verification emails and should be in the case file.
 7. `npm run verify:deploy` → all PASS; `updatedAt` must advance every minute.
 8. Reconcile charged-but-not-granted users from webhook logs.
 9. Branch protection on `main`, monitoring, marketing-copy corrections.
+
+---
+
+## Addendum 3 — full project inventory (Part 4, 2026-11-15)
+
+Two screenshots of **Workers & Pages → Show all → Last modified** list all **17 projects**
+(11–17 on page 2: "Showing 11-17 of 17"). GitHub API lists **17 repos** for user
+`sg16global`. Neither list contains a project/repo named "SG 16 Finance Conns".
+
+### Cloudflare Workers & Pages (account `sg16global@gmail.com`, id `3676a09b…`)
+
+| Project | Type / Git connection | Domains / routes | Requests | Modified |
+|---|---|---|---|---|
+| `sg16-ai-engine-new` | Pages, `sg16global/sg16-ai-engine` | `*.pages.dev` + 2 domains | — | 1d |
+| **`sg16finance`** | Worker, `sg16global/sg16finance` | `sg16finance.com` + 2 routes | **759** / 67.7 ms | 1d |
+| **`sg16finance-cron`** | Worker, **no Git connection** | **`sg16finance.com/api/cron*`** | **1.5k** / 0.3 ms | 1d |
+| `sg16-brain-apache2-0` | Worker, `sg16global/SG16-Brain-Apache-2.0` | `mistralbrain.com` + 2 routes | 2.1k / 11.1 ms | 2d |
+| `sg16-identifier-robo` | Worker, `sg16global/SG16-IDENTIFIER-ROBO` | `sg16identifier.com` + 2 routes | 311 / 1.3 ms | 12d |
+| **`dodo-payments-gateway`** | Worker, no Git shown | **`payments.saiftechglobal.com`** + 1 route | 274 / 0.2 ms | 1mo |
+| **`dodo-payment-proxy`** | Worker, no Git shown | `dodo-payment-proxy.sg16global.workers.dev` | **0** | 1mo |
+| `saiftechglobal` | Pages, `sg16global/saiftechglobal-website` | `*.pages.dev` + 2 domains | — | 1mo |
+| `sg16-children-world` | Pages, `sg16global/sg16children-website` | `*.pages.dev` + 2 domains | — | 1mo |
+| `geopolitical-monitor` | Pages, `sg16global/saifglobal-geopolitical-monitor` | `*.pages.dev` + 2 domains | — | 2mo |
+| `sg16-ads-network` | Pages, **"No Git connection"** | `*.pages.dev` + 1 domain | — | 2mo |
+| `fb-verify-mistral` | Worker, **"No active routes"** | none | 0 | 2mo |
+| `fb-verify-children` | Worker | `www.sg16children.com` + 1 route | 770 / 1.2 ms | 2mo |
+| `sg16-children-temp-api` | Worker | `api.sg16children.com` + 1 route | 172 / 3.6 ms | 2mo |
+| `sg16-children-world` | Worker duplicate | `*.workers.dev` | 0 | 2mo |
+| `saifglobalmap` | Worker | `*.workers.dev` | 0 | 4mo |
+| `saif_info` | Worker, **"No active routes"** | none | 0 | 4mo |
+
+The `sg16-children-world` Pages card shows a commit message mentioning `SG16-CONN…`
+(truncated, probably a document name) — that is the **only** "CONN" string seen anywhere
+in the evidence. A GitHub code search for `SG16-CONN` in that repo returned 0 results.
+
+### GitHub repos (`users/sg16global/repos?per_page=100&type=owner`, 17 total)
+`aegis-sovereign-ai-dev-studio`, `FIGHTER`, `file`, `nijer`, `recovery`,
+`saiftechglobal-website`, `sg16-ads-network`, `sg16-ai-engine`,
+`SG16-Brain-Apache2.0-`, `sg16-identifier`, `SG16-IDENTIFIER-ROBO`,
+`sg16-identifier-robo-manager`, `sg16children-website`, **`sg16finance`**,
+`Soverian-SG16-BRAIN`, `soverian-sg16-developer`, `test`. **No `conns` repo.**
+
+### Conclusions
+
+1. **The "two finance pages" are `sg16finance` and `sg16finance-cron`.** The second has
+   **no Git connection**, is **manually deployed**, owns the single route
+   `sg16finance.com/api/cron*`, and generates ~1.5k requests/day (the cron loop). That is
+   the "empty / non-functional" second project — a 1-file Worker, not a second full site.
+   This matches Addendum 2 C4 exactly.
+2. **"SG 16 Finance Conns" is not a Cloudflare project or a GitHub repo in this account.**
+   Most likely it is (a) a **Git connection / GitHub App installation** entry in Workers
+   Builds → Builds → "Manage" (a *connection*, not a project), (b) a project in a
+   **different Cloudflare account** (check the account switcher top-left), or (c) a
+   deleted/renamed project visible only in the **Audit Log**. It must be confirmed from
+   that exact screen; do not assert it does not exist.
+3. **Payments run through a separate zone.** `dodo-payments-gateway` serves
+   `payments.saiftechglobal.com` (274 requests) and `dodo-payment-proxy` has **0 requests**.
+   So the "Bot Fight Mode on `sg16finance.com` challenged all Dodo webhooks" hypothesis in
+   PR #1 / OPS-RUNBOOK is **not proven** for the gateway path. Webhook reconciliation must
+   collect logs from **both** `sg16finance.com/api/webhooks/dodo` and
+   `payments.saiftechglobal.com`, plus the Dodo dashboard's configured webhook URL.
+4. **Confirms C7:** `mistralbrain.com` is served by `sg16-brain-apache2-0` in the same
+   account — a first-party service.
+5. Several dormant cards ("No active routes", "No Git connection", 0 requests) are normal
+   leftovers of this account's history; they are **not** evidence of a locked or stolen
+   project. They should still be inventoried in the case file.
+
+### Evidence still outstanding
+Exact screen showing "SG 16 Finance Conns"; Cloudflare Audit Log; Previews Base deploy
+command; cron Worker `Edit code` source + Workers Logs; Security → Bots state; Account API
+tokens list; full secrets lists; Dodo/Resend/Finnhub webhook logs; D1 snapshot; the two
+Google Drive log archives.
