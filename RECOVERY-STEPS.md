@@ -50,7 +50,7 @@ Do this today; logs expire.
 - [ ] Optional but recommended: make the GitHub repo **private** — it is currently public and contains the full security runbook, the D1 UUID and the product IDs.
 
 ### STEP 2 — Get these fixes onto the branch Cloudflare builds
-- [ ] Merge the pull request I opened from `arena/8cffe4fa-sg16finance` → `main` (link in my message). If you prefer, cherry-pick the commit onto `main` yourself.
+- [ ] Merge **PR #2** → [`sg16global/sg16finance/pull/2`](https://github.com/sg16global/sg16finance/pull/2) (`arena/8cffe4fa-sg16finance` → `main`, commit `83e0cb3`). If you prefer, cherry-pick `83e0cb3` onto `main` yourself.
 - [ ] Note: my session is fixed to the `arena/8cffe4fa-sg16finance` branch, so I cannot push directly to `main`. Merging the PR is the one-click step that makes Workers Builds pick up the fixes.
 - [ ] After merging, GitHub → Actions should show a **green "CI"** check on `main`. That is the new, correct status (the old red X on `a56a784` is historical and will stay there forever — ignore it).
 
