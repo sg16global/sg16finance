@@ -9,6 +9,10 @@ Stack: **Next.js 16**, **Cloudflare Workers** (vinext), **Cloudflare D1** (SQLit
 
 No external Postgres (Neon/Supabase) required — data lives in **D1** on Cloudflare.
 
+> **Recovery in progress (2026-11-14):** see [`RECOVERY-STEPS.md`](./RECOVERY-STEPS.md)
+> for the operator checklist and [`FORENSIC-AUDIT-2026-11-14.md`](./FORENSIC-AUDIT-2026-11-14.md)
+> for the incident findings. Requires **Node >= 22.23.0** (`cf@1.0.0-beta.25` refuses older 22.x).
+
 ## Local development
 
 ```bash
@@ -27,7 +31,7 @@ For Workers-parity dev: `npm run dev:vinext`.
 
 | Environment | Storage |
 |-------------|---------|
-| **Production** | Cloudflare D1 binding `DB` (`database_name: sg16finance`) |
+| **Production** | Cloudflare D1 binding `DB` (`sg16finance-db`, id `8671a510-3431-41ad-be92-cdcb3faa3f72`) |
 | **Local `next dev`** | SQLite file `.data/sg16finance.db` |
 
 ### Fresh / clean data
@@ -42,7 +46,7 @@ npm run db:seed
 Production (after deploy, from your machine with Cloudflare CLI):
 
 ```bash
-cf d1 migrations apply sg16finance --remote
+cf d1 migrations apply sg16finance-db --remote
 npm run db:seed
 ```
 
@@ -79,7 +83,22 @@ deploy if still active.
 | Deploy command (production) | `npx cf deploy --prebuilt` |
 | Deploy command (preview/branch triggers) | `npx cf previews deploy --prebuilt` |
 
-The Cron Worker is a plain Wrangler Worker: `npm run deploy:cron`.
+The Cron Worker is a plain Wrangler Worker: `npm run deploy:cron` (run inside `cron-worker/`,
+with `FINNHUB_API_KEY` set). It writes market prices to D1 **every minute** — if it stops,
+`/api/quotes` and `/api/dashboard` report `stale: true` and the site must show a warning.
+
+### Verify a deployment (no credentials needed)
+
+```bash
+npm run verify:deploy                       # checks https://sg16finance.com
+npm run verify:deploy https://other-host   # or a preview URL
+```
+
+It checks `/api/health`, `/api/version` (build SHA vs local `git rev-parse --short HEAD`),
+that the discarded `/api/cron` route is gone, that market data is younger than 30 minutes,
+that quote timestamps are real, and that Turnstile/edge config is present. **A mismatch on
+`/api/version` means Cloudflare is serving a build that is not in git** — the root cause of
+the November 2026 incident.
 
 ## Scripts
 
@@ -93,4 +112,6 @@ The Cron Worker is a plain Wrangler Worker: `npm run deploy:cron`.
 | `npm run deploy:cron` | Deploy the cron Worker (Wrangler) |
 | `npm run db:push` | Apply schema (local file) |
 | `npm run db:seed` | Load institutional seed data |
-| `npm test` | Run the vitest suite (security, passes, access gating) |
+| `npm run typecheck` | `tsc --noEmit` for the app **and** the cron Worker |
+| `npm test` | Run the vitest suite (security, passes, access gating, data freshness) |
+| `npm run verify:deploy` | Read-only health/drift/freshness check of the live site |

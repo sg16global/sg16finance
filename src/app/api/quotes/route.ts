@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureDataSeeded } from "@/db/ensure-data";
-import { hasLiveAccess, loadMarketAssets } from "@/lib/market";
+import { hasLiveAccess, loadMarketAssets, marketDataFreshness } from "@/lib/market";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,7 @@ export async function GET(request: Request) {
         timestamp: new Date().toISOString(),
         streaming: live,
         delayMinutes: live ? 0 : 15,
+        ...marketDataFreshness(assets),
         quotes: assets.map((a) => ({
           symbol: a.symbol,
           name: a.name,

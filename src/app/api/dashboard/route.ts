@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { sectors, earningsReports, marketAlerts } from "@/db/schema";
-import { hasLiveAccess, loadMarketAssets } from "@/lib/market";
+import { hasLiveAccess, loadMarketAssets, marketDataFreshness } from "@/lib/market";
 import { ensureDataSeeded } from "@/db/ensure-data";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,7 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
       streaming: live,
       delayMinutes: live ? 0 : 15,
+      ...marketDataFreshness(assetsList),
       assets: assetsList,
       sectors: sectorsList,
       earnings: earningsList,
