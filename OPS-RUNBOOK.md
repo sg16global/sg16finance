@@ -2,6 +2,12 @@
 
 Last updated: **2026-10-30** (after the failed Workers Builds deploy `06972dd3` and the site-wide 403 challenge incident).
 
+> **2026-11-14 update:** a later incident (frozen market-data ingest, production serving a
+> deleted build) is documented in [`FORENSIC-AUDIT-2026-11-14.md`](./FORENSIC-AUDIT-2026-11-14.md).
+> Follow [`RECOVERY-STEPS.md`](./RECOVERY-STEPS.md) first; the section 2 deploy commands below
+> are still correct, but they were never applied to the dashboard, which is why auto-deploy
+> kept aborting. Always finish with `npm run verify:deploy`.
+
 ---
 
 ## 0. What actually happened (two separate problems)

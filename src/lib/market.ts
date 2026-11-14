@@ -48,13 +48,15 @@ export async function loadMarketAssets(live: boolean): Promise<MarketAsset[]> {
     ),
   );
 
-  const delayedPrice = new Map<string, number>();
+  // Keep the timestamp of the historical bucket together with its price: the API must
+  // report when that price was ACTUALLY recorded, not "now minus 15 minutes".
+  const delayedPrice = new Map<string, { price: number; ts: number }>();
   if (!live) {
     const cutoff = Date.now() - DELAY_MS;
-    const rows = await db.all<{ symbol: string; price: number }>(sql`
-      SELECT h.symbol, h.price FROM quote_history h
+    const rows = await db.all<{ symbol: string; price: number; ts: number }>(sql`
+      SELECT h.symbol, h.price, h.ts FROM quote_history h
       WHERE h.ts = (SELECT MAX(ts) FROM quote_history WHERE symbol = h.symbol AND ts <= ${cutoff})`);
-    for (const r of rows) delayedPrice.set(r.symbol, r.price);
+    for (const r of rows) delayedPrice.set(r.symbol, { price: r.price, ts: r.ts });
   }
 
   return assets.map((a) => {
@@ -63,15 +65,33 @@ export async function loadMarketAssets(live: boolean): Promise<MarketAsset[]> {
     const older = delayedPrice.get(a.symbol);
     if (live || older === undefined) return base;
 
-    const change = m ? older - m.prev_close : Number(a.change);
+    const change = m ? older.price - m.prev_close : Number(a.change);
     const pct = m && m.prev_close ? (change / m.prev_close) * 100 : Number(a.changePercent);
     return {
       ...base,
-      price: fmtPrice(older),
+      price: fmtPrice(older.price),
       change: change.toFixed(Math.abs(change) < 10 ? 4 : 2),
       changePercent: pct.toFixed(2),
       delayed: true,
-      asOf: new Date(Date.now() - DELAY_MS).toISOString(),
+      asOf: new Date(older.ts).toISOString(),
     };
   });
+}
+
+/**
+ * Honest freshness of the stored market data, derived from the rows we already loaded
+ * (no extra D1 query). `asOf` is the newest real write time; `stale` is true when the
+ * ingest pipeline has stopped. Added to /api/quotes and /api/dashboard so a dead cron
+ * Worker can never again be disguised as "15 minutes delayed" live data.
+ */
+export function marketDataFreshness(assets: MarketAsset[], maxAgeMs = 30 * 60_000) {
+  let newest = 0;
+  for (const a of assets) {
+    const t = a.updatedAt instanceof Date ? a.updatedAt.getTime() : 0;
+    if (t > newest) newest = t;
+  }
+  return {
+    dataAsOf: newest ? new Date(newest).toISOString() : null,
+    stale: newest === 0 || Date.now() - newest > maxAgeMs,
+  };
 }

@@ -1,0 +1,14 @@
+{
+  // The cron Worker is a plain Wrangler Worker, not part of the Next/vinext app.
+  // It needs the Cloudflare runtime globals (D1Database, ScheduledController, ...),
+  // which the root tsconfig deliberately does NOT load globally because they change
+  // Response.json() to `unknown` in the app code.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "types": ["@cloudflare/workers-types"],
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["../node_modules"]
+}
